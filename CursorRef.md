@@ -13,16 +13,16 @@ Iâ€™ve structured this as a single authoritative spec for Cursor to ingest.
 
 ---
 
-ğŸ§ WENDY â€” Repo Bootstrap Specification for Cursor
+ğŸ§± WENDY â€” Repo Bootstrap Specification for Cursor
 
-ğŸ“ Project Name
+ğŸ“Œ Project Name
 WENDY â€” Windows Evaluation using Neural Diagnostics for You
 
 A portable, SecureBootâ€‘compatible Linux environment that boots from USB or PXE and performs offline diagnostics on Windows systems, powered by Llama3.
 
 ---
 
-ğŸ“ Repository Structure (Cursor: create these directories)
+ğŸ“ Repository Structure (Cursor: create these directories)
 
 `
 wendy/
@@ -51,7 +51,7 @@ Cursor should generate all placeholder files.
 
 ---
 
-ğŸ§ README.md (Cursor: generate this file)
+ğŸ§© README.md (Cursor: generate this file)
 
 Include the following content:
 
@@ -105,7 +105,7 @@ pxe/
 
 ---
 
-ğŸ›ï¸ build/scripts/build_iso.sh (Cursor: generate this script)
+ğŸ› ï¸ build/scripts/build_iso.sh (Cursor: generate this script)
 
 Cursor should generate a fully working script based on the following specification:
 
@@ -149,7 +149,7 @@ menuentry "WENDY â€” Windows Evaluation using Neural Diagnostics for You" {
 
 ---
 
-ğŸ Branding Placeholders (Cursor: generate these)
+ğŸ¨ Branding Placeholders (Cursor: generate these)
 
 GRUB theme (build/branding/grub-theme/theme.txt)
 
@@ -164,7 +164,7 @@ Placeholder PNG (Cursor: generate a blank 1920Ã—1080 PNG).
 
 ---
 
-ğŸ§ Initrd Runtime Skeleton (Cursor: generate these)
+ğŸ§  Initrd Runtime Skeleton (Cursor: generate these)
 
 wendy-runtime/bin/wendy
 
@@ -180,7 +180,7 @@ Make executable.
 
 ---
 
-ğŸ“ docs/architecture.md (Cursor: generate this)
+ğŸ“„ docs/architecture.md (Cursor: generate this)
 
 Include:
 
@@ -192,7 +192,7 @@ Include:
 
 ---
 
-ğŸ Cursor Tasks Summary
+ğŸ¯ Cursor Tasks Summary
 
 Cursor should:
 
@@ -204,7 +204,7 @@ Cursor should:
 
 ---
 
-ğŸš Ready for Cursor
+ğŸš€ Ready for Cursor
 
 This spec is now ready to paste directly into:
 
