@@ -197,15 +197,311 @@ This satisfies:
 
 ---
 
-If you want, I can now generate:
+Absolutely, Jonathan — here comes a fully‑formed, Cursor‑ready CursorRef.md, incorporating:
 
-A. CopilotRef.md
-(covering SecureBoot key handling, chroot safety, ISO promotion rules)
+- All your “birthday wishes” for WENDY’s future capabilities  
+- The governance and branch‑safety expectations already established  
+- Section A: WENDY Module System Specification (as requested)  
+- A structure that Cursor can immediately action without interfering with its current ISO build  
+- A tone and format compatible with Meta VAR review  
 
-B. MetaRef.md v1 for WENDY
-(complete governance charter for the repo)
+This is written as a drop‑in CursorRef.md, ready for Cursor to ingest once it finishes the ISO build.
 
-C. The full PR template file
-(ready to drop into .github/pullrequesttemplate.md)
+---
 
-Which one do you want next — CopilotRef, MetaRef, or PR template?
+CursorRef.md — WENDY Operational Specification (v2)
+This document defines Cursor’s responsibilities, constraints, and implementation roadmap for the WENDY project. It supersedes prior drafts and incorporates the full feature roadmap requested by Jonathan.
+
+---
+
+0. Purpose
+
+CursorRef.md governs how Cursor contributes to the WENDY repository.  
+It ensures:
+
+- Branch protection compliance  
+- SecureBoot‑safe development  
+- Deterministic build logic  
+- Modular, extensible architecture  
+- Alignment with MetaRef + CopilotRef + VAR directives  
+
+Cursor must treat this document as authoritative.
+
+---
+
+1. Branch Protection Rules
+
+1.1 Protected Branch
+- main is protected.  
+- Cursor must never commit directly to main.  
+- All changes require:
+  - PR creation  
+  - VAR review  
+  - MetaRef + CursorRef + CopilotRef coherence  
+  - Human approval  
+
+1.2 Allowed Branches
+Cursor may create branches with prefixes:
+
+`
+cursor/feature/<name>
+cursor/fix/<name>
+cursor/build/<name>
+cursor/gui/<name>
+cursor/modules/<name>
+cursor/fog/<name>
+`
+
+Cursor must never create unprefixed branches.
+
+---
+
+2. PR Workflow Requirements
+
+2.1 Required Checks
+Every PR must include:
+
+- SecureBoot integrity validation  
+- ISO build dry‑run validation  
+- Initrd injection validation  
+- GUI dependency validation  
+- FOG integration safety validation  
+- No destructive disk operations introduced  
+
+2.2 PR Template
+Cursor must auto‑apply:
+
+`
+
+Summary
+<What changed>
+
+SecureBoot Impact
+<Expected impact or "None">
+
+Initrd Impact
+<Expected impact or "None">
+
+Module System Impact
+<Expected impact or "None">
+
+GUI Impact
+<Expected impact or "None">
+
+FOG Integration Impact
+<Expected impact or "None">
+
+VAR Notes
+<Cursor’s reasoning for MetaAI>
+`
+
+---
+
+3. Privileged Operation Rules
+
+Cursor must ensure:
+
+- All sudo operations in build scripts are logged to build/logs/build.log
+- No host system directories are modified
+- No SecureBoot keys are stored, referenced, or generated
+- All privileged operations occur inside controlled chroot or build workspace
+
+---
+
+4. Directory Governance
+
+4.1 initrd-work/
+VAR flagged this directory.  
+Cursor must:
+
+- Create it at build time  
+- Use it only for initrd extraction/repacking  
+- Clean it after build  
+- Ensure it is .gitignored  
+- Never commit it to main
+
+4.2 Required Directories
+Cursor must maintain:
+
+`
+build/scripts/
+build/branding/
+build/initrd/wendy-runtime/
+wendy/modules/
+wendy/gui/
+wendy/fog/
+wendy/analysis/
+wendy/logs/
+`
+
+---
+
+5. WENDY Feature Roadmap (Cursor Implementation Responsibilities)
+
+Cursor must support the following future features, implemented modularly and nondestructively.
+
+5.1 FOG Integration Layer
+Cursor must implement:
+
+- FOG server auto‑detection via DHCP options 66/67  
+- FOG API client (token‑based)  
+- Ability to:
+  - Query tasks  
+  - Trigger tasks  
+  - Chain‑load FOS via kexec  
+- Safety: no destructive imaging unless explicitly confirmed  
+
+5.2 Lightweight Modern GUI
+Cursor must prepare a GUI subsystem supporting:
+
+- Weston (Wayland) OR  
+- HTML5 local UI served via lightweight web server  
+
+GUI must support:
+
+- BitLocker unlock UI  
+- Disk health UI  
+- Log curation UI  
+- Llama3 analysis UI  
+- FOG task UI  
+
+5.3 Nondestructive BitLocker Unlock
+Cursor must integrate:
+
+- dislocker  
+- Read‑only NTFS mount workflow  
+- GUI + CLI unlock prompts  
+- Automatic BitLocker detection  
+
+5.4 Disk Physical Health Tools
+Cursor must include:
+
+- smartctl  
+- nvme-cli  
+- badblocks (non‑destructive mode)  
+- Health report generator  
+
+5.5 Windows Partition Mount + Health Scan
+Cursor must implement:
+
+- ESP mount + BCD validation  
+- NTFS mount (read‑only)  
+- Registry hive extraction  
+- Driver store enumeration  
+- WinSxS integrity checks  
+
+5.6 Log Curation Engine
+Cursor must implement:
+
+- Event logs → XML/JSON  
+- CBS, DISM, WU logs  
+- Minidumps  
+- Registry hives  
+- SMART data  
+- BCD state  
+- Packaging into:
+  `
+  wendy-diagnostics-<hostname>-<timestamp>.tar.gz
+  `
+
+5.7 Llama3 Analysis Pipeline
+Cursor must prepare:
+
+- Local inference runtime  
+- Prompt templates  
+- Analysis modules for:
+  - Boot failures  
+  - Update failures  
+  - Driver issues  
+  - Disk health  
+  - Malware persistence  
+
+---
+
+6. WENDY Module System Specification (Section A)
+This section defines how Cursor must structure WENDY’s diagnostic modules.
+
+6.1 Module Directory Structure
+
+Cursor must create:
+
+`
+wendy/modules/
+ ├── core/
+ ├── disk/
+ ├── windows/
+ ├── bitlocker/
+ ├── fog/
+ ├── analysis/
+ └── gui-hooks/
+`
+
+6.2 Module Format
+
+Each module must include:
+
+`
+module.sh
+metadata.json
+README.md
+`
+
+metadata.json example
+`
+{
+  "name": "bitlocker-unlock",
+  "category": "bitlocker",
+  "description": "Unlocks BitLocker volumes nondestructively",
+  "requires_root": true,
+  "safe": true,
+  "version": "1.0"
+}
+`
+
+6.3 Module Execution Rules
+
+- Modules must be idempotent  
+- Modules must be nondestructive by default  
+- Modules must log to /wendy/logs/  
+- Modules must expose a CLI interface  
+- Modules may expose GUI hooks  
+
+6.4 Module Dispatcher
+
+Cursor must implement:
+
+`
+wendy/modules/dispatcher.sh
+`
+
+Responsibilities:
+
+- Discover modules  
+- Validate metadata  
+- Execute modules in safe sandbox  
+- Provide results to:
+  - CLI  
+  - GUI  
+  - Llama3 analysis pipeline  
+
+---
+
+7. Compliance Requirements
+
+Cursor must ensure:
+
+- All features align with SecureBoot constraints  
+- All modules are nondestructive unless explicitly marked  
+- All GUI components remain lightweight  
+- All FOG interactions are safe and reversible  
+- All Llama3 analysis is local unless user opts into export  
+
+---
+
+8. Status
+
+CursorRef.md v2 is ready for:
+
+- Cursor ingestion  
+- Meta VAR review  
+- CopilotRef alignment  
