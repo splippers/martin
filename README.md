@@ -1,0 +1,66 @@
+# WENDY — Windows Evaluation using Neural Diagnostics for You
+
+WENDY is a portable, SecureBoot‑compatible Linux environment designed to boot from USB or PXE and analyse offline Windows systems using a modular diagnostic framework powered by Llama3.
+
+This repository contains:
+
+- The ISO build system  
+- The initrd runtime skeleton  
+- Branding placeholders  
+- PXE‑ready boot assets  
+- A modular structure for future diagnostic tools  
+
+---
+
+## Build requirements
+
+Ubuntu 24.04 or later (amd64 host recommended). Required packages:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
+  shim-signed isolinux syslinux-common mtools wget curl
+```
+
+Additional packages pulled or used implicitly by tooling: `grub-common`, `squashfs-tools`, `xorriso` (often already present alongside `xorriso`).
+
+---
+
+## Build the ISO
+
+```bash
+cd build/scripts
+sudo bash build_iso.sh
+```
+
+Artifacts:
+
+- **`wendy.iso`** — hybrid ISO suitable for removable media writing (hosts `EFI/BOOT/` + `casper/` + duplicate kernel/initrd under `boot/` for documentation parity).
+
+- **`pxe/`** — unpacked boot files:
+
+```
+pxe/
+ ├── shimx64.efi
+ ├── grubx64.efi
+ ├── vmlinuz
+ └── initrd-wendy.img
+```
+
+Inside the ISO, GRUB launches the shipped kernel/initrd under `/casper/` with `boot=casper` so the squashfs filesystem is discovered reliably.
+
+Example menu entry semantics (paths on the ISO use `/casper/` for discovery):
+
+```
+menuentry "WENDY — Windows Evaluation using Neural Diagnostics for You" {
+    linux /boot/vmlinuz quiet splash
+    initrd /boot/initrd-wendy.img
+}
+```
+
+The build script mirrors `vmlinuz` and `initrd-wendy.img` into **`boot/`** and **`casper/`** so both styles remain valid.
+
+---
+
+See `CursorRef.md` for the authoring note that bootstrapped this repository, `docs/architecture.md` for the technical pipeline, and `MetaRef.md` for known limitations and deltas from the authoring spec.

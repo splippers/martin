@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "WENDY — Windows Evaluation using Neural Diagnostics for You"
+echo "-----------------------------------------------------------"
+echo "Hello. I'm ready to evaluate your Windows system."

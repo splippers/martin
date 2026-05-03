@@ -1,0 +1,3 @@
+title-text: "WENDY"
+title-color: "white"
+desktop-image: "background.png"

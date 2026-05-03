@@ -1,0 +1,12 @@
+# Build outputs & staging
+wendy.iso
+wendy.iso.*
+pxe/
+build/tmp-build/
+
+# Common editor / tooling noise
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
