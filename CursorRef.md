@@ -1,226 +1,211 @@
-Here is a Cursor‑ready, repo‑ready, instruction‑set you can drop straight into a README.md or cursor.json to bootstrap the WENDY project.  
-It is written specifically in the style Cursor expects: clear goals, explicit directory structure, deterministic build steps, and actionable tasks Cursor can execute.
+Got it — and this is exactly the kind of VAR‑level meta‑coordination WENDY’s repo needs.  
+Let me give you what you actually need next: a CursorRef.md that satisfies the VAR’s directive, aligns with MetaRef §6.2, and resolves the flagged issues (branch protection, PR workflow, sudo audit trail, and the initrd-work/ scaffolding warning).
 
-This gives you a fully scaffolded GitHub repo, with:
-
-- Ubuntu‑based SecureBoot ISO build logic  
-- WENDY branding placeholders  
-- Initrd runtime skeleton  
-- A clean, extensible project layout  
-- A build script Cursor can generate and maintain  
-
-I’ve structured this as a single authoritative spec for Cursor to ingest.
+Below is the CursorRef.md you can drop directly into the repo root.  
+It is written in the same governance dialect as your VAR, MetaAI, and CopilotRef ecosystem.
 
 ---
 
-🧱 WENDY — Repo Bootstrap Specification for Cursor
-
-📌 Project Name
-WENDY — Windows Evaluation using Neural Diagnostics for You
-
-A portable, SecureBoot‑compatible Linux environment that boots from USB or PXE and performs offline diagnostics on Windows systems, powered by Llama3.
+CursorRef.md — WENDY Repo Governance (v1)
+This document defines Cursor’s operational constraints, PR workflow, and build‑pipeline responsibilities for the WENDY project.
 
 ---
 
-📁 Repository Structure (Cursor: create these directories)
+1. Branch Policy Compliance
+
+1.1 Protected Branch
+- main is protected.  
+- Cursor must never commit directly to main.  
+- All changes require:
+  - PR creation  
+  - VAR review  
+  - MetaRef + CursorRef + CopilotRef coherence check  
+  - Human approval  
+
+1.2 Working Branches
+Cursor may create branches with the prefix:
 
 `
-wendy/
- ├── build/
- │    ├── scripts/
- │    │     └── build_iso.sh
- │    ├── branding/
- │    │     ├── grub-theme/
- │    │     │     ├── theme.txt
- │    │     │     ├── background.png
- │    │     │     └── logo.png
- │    │     └── splash.png
- │    └── initrd/
- │          └── wendy-runtime/
- │                ├── bin/
- │                │    └── wendy
- │                ├── modules/
- │                └── lib/
- ├── docs/
- │    └── architecture.md
- ├── .gitignore
- └── README.md
+cursor/<feature-name>
+cursor/fix/<issue>
+cursor/build/<component>
 `
 
-Cursor should generate all placeholder files.
+Cursor must never create branches without a prefix.
 
 ---
 
-🧩 README.md (Cursor: generate this file)
+2. PR Workflow Requirements
 
-Include the following content:
+2.1 Required Checks
+Every PR must include:
 
----
+- SecureBoot Integrity Check  
+  Validate that:
+  - shimx64.efi is not modified  
+  - grubx64.efi is not modified  
+  - Kernel packages remain Canonical‑signed  
+  - No custom kernel is introduced  
 
-WENDY — Windows Evaluation using Neural Diagnostics for You
+- ISO Build Pipeline Check  
+  Run build_iso.sh in dry‑run mode (no root) to validate:
+  - Directory structure  
+  - Script syntax  
+  - Presence of required assets  
 
-WENDY is a portable, SecureBoot‑compatible Linux environment designed to boot from USB or PXE and analyse offline Windows systems using a modular diagnostic framework powered by Llama3.
+- Initrd Injection Check  
+  Ensure:
+  - wendy-runtime/ is injected into initrd  
+  - No privileged operations occur outside the chroot  
+  - No SecureBoot keys are stored or referenced  
 
-This repository contains:
-
-- The ISO build system  
-- The initrd runtime skeleton  
-- Branding placeholders  
-- PXE‑ready boot assets  
-- A modular structure for future diagnostic tools  
-
----
-
-Build Requirements
-
-Ubuntu 24.04 or later  
-Required packages:
+2.2 PR Template (Cursor must auto‑apply)
 
 `
-sudo apt update
-sudo apt install -y \
-  debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
-  shim-signed isolinux syslinux-common mtools wget curl
+
+Summary
+<What changed>
+
+SecureBoot Impact
+<Expected impact or "None">
+
+Initrd Impact
+<Expected impact or "None">
+
+ISO Build Impact
+<Expected impact or "None">
+
+VAR Review Notes
+<Cursor’s reasoning for MetaAI>
 `
 
 ---
 
-Build the ISO
+3. sudo Audit Trail Requirements
+
+Cursor must ensure that all privileged operations in build_iso.sh:
+
+- Are isolated inside the script  
+- Are logged to build/logs/build.log  
+- Never write to host system directories outside the workspace  
+- Never modify /boot, /etc, or /usr on the host  
+
+Cursor must enforce:
 
 `
-cd build/scripts
-sudo bash build_iso.sh
+sudo echo "[WENDY-BUILD] <operation>" >> build/logs/build.log
 `
 
-Output:
+before each privileged step.
+
+---
+
+4. Directory Governance
+
+4.1 initrd-work/ Yellow Card Resolution
+VAR flagged initrd-work/ as unused scaffolding.
+
+Cursor must:
+
+- Justify its existence OR
+- Remove it
+
+Justification (recommended):
+
+initrd-work/ is required for:
+
+- Extracting the stock initrd  
+- Injecting wendy-runtime/  
+- Repacking initrd-wendy.img  
+
+Cursor must ensure the directory is:
+
+- Created at build time  
+- Cleaned after build  
+- Never committed to main  
+
+Add to .gitignore:
 
 `
-wendy.iso
+initrd-work/
+rootfs/
+iso/
+boot/
 pxe/
- ├── shimx64.efi
- ├── grubx64.efi
- ├── vmlinuz
- └── initrd-wendy.img
 `
 
 ---
 
-🛠️ build/scripts/build_iso.sh (Cursor: generate this script)
+5. Cursor Operational Rules
 
-Cursor should generate a fully working script based on the following specification:
+5.1 Cursor Must
+- Maintain deterministic build scripts  
+- Keep all SecureBoot‑sensitive binaries untouched  
+- Maintain GRUB config integrity  
+- Maintain initrd injection logic  
+- Keep WENDY branding placeholders intact  
+- Ensure all changes are modular and reviewable  
 
-Script Requirements
-
-1. Create working directories:
-   - rootfs/
-   - iso/
-   - boot/
-   - initrd-work/
-
-2. Use debootstrap to create a minimal Ubuntu rootfs.
-
-3. Install inside chroot:
-   - linux-image-generic
-   - grub-efi-amd64-signed
-   - shim-signed
-   - casper
-   - busybox
-   - network-manager
-
-4. Extract the stock initrd, inject wendy-runtime/, and repack as initrd-wendy.img.
-
-5. Copy:
-   - vmlinuz
-   - shimx64.efi
-   - grubx64.efi
-
-6. Generate GRUB config:
-
-`
-menuentry "WENDY — Windows Evaluation using Neural Diagnostics for You" {
-    linux /boot/vmlinuz quiet splash
-    initrd /boot/initrd-wendy.img
-}
-`
-
-7. Build ISO using xorriso.
-
-8. Export PXE‑ready files.
+5.2 Cursor Must Not
+- Modify shim, GRUB binaries, or kernel  
+- Introduce custom kernel modules  
+- Store or reference SecureBoot keys  
+- Execute build scripts automatically  
+- Commit directly to main  
+- Collapse directory structure without VAR approval  
 
 ---
 
-🎨 Branding Placeholders (Cursor: generate these)
+6. Build Pipeline Responsibilities
 
-GRUB theme (build/branding/grub-theme/theme.txt)
+Cursor owns:
 
-`
-title-text: "WENDY"
-title-color: "white"
-desktop-image: "background.png"
-`
+- build/scripts/build_iso.sh  
+- build/branding/ assets  
+- build/initrd/wendy-runtime/ skeleton  
+- PXE output generation logic  
 
-Splash (build/branding/splash.png)
-Placeholder PNG (Cursor: generate a blank 1920×1080 PNG).
+Cursor must ensure:
 
----
-
-🧠 Initrd Runtime Skeleton (Cursor: generate these)
-
-wendy-runtime/bin/wendy
-
-`
-
-!/bin/sh
-echo "WENDY — Windows Evaluation using Neural Diagnostics for You"
-echo "-----------------------------------------------------------"
-echo "Hello. I’m ready to evaluate your Windows system."
-`
-
-Make executable.
+- Reproducibility  
+- Deterministic outputs  
+- No host contamination  
+- No SecureBoot violations  
 
 ---
 
-📄 docs/architecture.md (Cursor: generate this)
+7. Compliance with MetaRef + CopilotRef
 
-Include:
+Cursor must ensure:
 
-- SecureBoot chain explanation  
-- ISO build pipeline  
-- Initrd runtime architecture  
-- Future module system design  
-- Llama3 integration plan  
+- All PRs align with MetaRef §6.2  
+- All SecureBoot operations align with CopilotRef security guidance  
+- All build logic is traceable and auditable  
 
----
-
-🎯 Cursor Tasks Summary
-
-Cursor should:
-
-1. Create the full repo structure.  
-2. Generate all placeholder files.  
-3. Generate build_iso.sh implementing the full build pipeline.  
-4. Ensure the repo builds a SecureBoot‑compatible ISO.  
-5. Provide a clean foundation for future WENDY modules.
+Cursor must reject any PR that violates these.
 
 ---
 
-🚀 Ready for Cursor
+CursorRef.md — Status: Ready for VAR Review
 
-This spec is now ready to paste directly into:
+This satisfies:
 
-- README.md  
-- .cursor/rules.md  
-- Or a new Cursor chat session  
-
-Cursor will scaffold the entire WENDY repo from this.
+- VAR Directive §3  
+- MetaRef §6.2  
+- CopilotRef SecureBoot constraints  
+- Yellow Card remediation  
 
 ---
 
 If you want, I can now generate:
 
-- The full build_iso.sh script  
-- The full initrd module framework  
-- The Llama3 inference pipeline skeleton  
-- The Windows‑analysis module system  
+A. CopilotRef.md
+(covering SecureBoot key handling, chroot safety, ISO promotion rules)
 
-Which one do you want next?
+B. MetaRef.md v1 for WENDY
+(complete governance charter for the repo)
+
+C. The full PR template file
+(ready to drop into .github/pullrequesttemplate.md)
+
+Which one do you want next — CopilotRef, MetaRef, or PR template?
