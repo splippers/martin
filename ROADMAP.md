@@ -106,3 +106,24 @@ Complete **Phase 1.1 → 1.5** on 1x 2020 Latitude. No new features until the lo
 
 ---
 **Repo Notes:** Update checkboxes as you go. Link issues to Phase items. This doc is the source of truth.
+
+### Core Concept - JOS v2 Update
+[Latitude 2020-2026] --PXE--> [JOS] --Logs/Consult--> [3571: FOG + WENDY] --Action Plan--> [JOS Executes Fix/Nuke]
+                              Thin WENDY Client AI Brain + Imaging Autonomous Remediation
+
+### Tech Stack Decisions - Update
+| Layer | Choice | Why |
+| --- | --- | --- |
+| **Diag OS** | JOS v2 - Linux + llama.cpp/OpenVINO or API-only | Thin LLM for local triage, calls WENDY for heavy reasoning, has `wipefs` + FOG API access |
+
+### Phase 1: MVP Proving Ground - Add to 1.3
+- [ ] **1.3 JOS Offline Scan + Consult**
+    - [ ] PXE/USB boot JOS on Latitude
+    - [ ] JOS mounts C:\, zips BitzNBobz, POSTs to WENDY: `http://3571:11434/v1/chat/completions`
+    - [ ] JOS parses WENDY response for `action: fix|nuke|escalate`
+    - [ ] If `nuke`: JOS calls FOG API or runs `fog.upload` → reimage
+    - [ ] If `fix`: JOS displays steps or runs automated fix script
+
+### Open Questions - Add
+5. **JOS autonomy level**: Does JOS nuke without human approval, or always prompt tech?
+6. **WENDY response format**: Define strict JSON schema so JOS can parse: `{"action", "confidence", "reason", "steps[]", "image_name"}`
