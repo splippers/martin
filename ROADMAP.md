@@ -254,3 +254,83 @@ Complete **Phase 1.1 → 1.5** on 1x 2020 Latitude. No new features until the lo
 
 ---
 **Repo Notes:** Update checkboxes as you go. Link issues to Phase items. All nukes require a signed Death Certificate in CLINIC. This doc is the source of truth.
+
+---
+
+## UX Theme System + Outpatient Services Addendum
+
+### UX Theme System
+**Default Theme: Clinical** - Professional medical terminology, neutral tone. All UI elements, audit logs, API responses, database entries, and exported reports use standard operational phrasing. This theme is used for compliance, management reporting, and audit trails.
+
+**Optional Skins: Christopher | Shatner** - Configurable in `Settings > Appearance`. Skins affect user-facing display text only. They do not alter system logic, API contracts, database schema, audit log content, or exported data. Clinical theme is enforced for all persistent records regardless of active skin.
+
+**Theme Scope**
+| Component | Clinical | Christopher Skin | Shatner Skin |
+| --- | --- | --- | --- |
+| **Intake Portal Name** | Self-Service Diagnostics | Christopher Walk-in Clinic | Shatner Ward - Red Alert |
+| **Reception Agent** | Diagnostic Agent | B.A.B.S. - Basic Automated Bootstrap Screener | Captain Kirk |
+| **Approval Action** | Approve Reimage | Sign Death Certificate | Captain's Log Entry |
+| **Hold Action** | Preserve Disk Image | Cryogenic Freeze | Stasis Protocol |
+| **Remediation** | Apply Remediation Plan | Issue Prescription | Engineering Directive |
+| **Escalate** | Manual Review Required | Admit to ER | Abandon Ship |
+
+**Configuration**
+- Default: `Clinical`. Alternative skins disabled until enabled by administrator.
+- Access Control: Theme selection is per-user for UI only. System-wide reports export as Clinical.
+- Audit Requirement: All cases logged with Clinical terminology: `action: reimage`, `status: approved`, `approver_id: j.davis`.
+
+### Phase 2 Additions
+
+- [ ] **2.5 Data Preservation Protocol**
+    - [ ] CLINIC: `[Preserve Disk Image]` option for cases with passing hardware diagnostics but unresolved software fault
+    - [ ] JOS: If `action: preserve` received, capture full disk image to `/storage/preserved/{serial}_{case_id}.img`
+    - [ ] Metadata: Store case ID, symptom summary, WENDY model version, hardware validation results, preservation rationale
+    - [ ] Chassis Workflow: If hardware validation passes, JOS may reimage chassis with golden image and return to service
+    - [ ] CLINIC Tracking: Link preserved image to chassis serial. Flag chassis as `repurposed` in inventory
+    - [ ] Tooling: `wendy-mount` utility for read-only mounting of preserved images for forensic analysis
+    - [ ] Retention: Preserved images subject to data retention policy. Default 180 days unless flagged for research
+
+- [ ] **2.6 Self-Service Intake Portal**
+    - [ ] Network: DHCP option 252 WPAD configuration for diagnostic VLAN directs to `/intake`
+    - [ ] Portal UI: Default name "Self-Service Diagnostics". User form: hostname, serial, issue category, description
+    - [ ] Agent: `triage.ps1` - Lightweight in-OS data collection. No reboot, no BitLocker modification
+    - [ ] WENDY Endpoint: `/api/intake` processes triage data. Returns `{disposition: resolve|escalate, instructions[]}`
+    - [ ] Disposition `resolve`: Display remediation steps to user. Log case as self-resolved
+    - [ ] Disposition `escalate`: Generate case in CLINIC. Provide PXE boot instructions to user
+    - [ ] JOS Handoff: Serial numbers flagged for escalation auto-load case data on next PXE boot
+    - [ ] Metrics: Dashboard for intake volume, self-resolution rate, PXE escalation rate
+    - [ ] Consent: Required checkbox for diagnostic data collection. Logged to audit trail
+
+- [ ] **2.7 UI Theme Engine**
+    - [ ] Settings Module: `Appearance > Theme: Clinical | Christopher | Shatner`
+    - [ ] Implementation: String table lookup for UI rendering. No changes to data layer
+    - [ ] Default State: Clinical active. Christopher available. Shatner requires admin flag `enable_shatner_mode: true`
+    - [ ] Scope Limitation: Themes apply to `/intake` and `/clinic` web interfaces only. CLI tools, logs, API output excluded
+    - [ ] Compliance: Export functions `Export Case PDF` and `Export CSV` force Clinical strings regardless of UI theme
+    - [ ] Special Functions: Christopher skin includes B.A.B.S. reception dialogue. Shatner skin includes alert styling and requires confirmation click-through due to dramatic presentation
+
+### Terminology Mapping - Clinical Default
+| Concept | Clinical Term | Internal Action |
+| --- | --- |
+| **Destructive Wipe** | Approve Reimage | JOS executes FOG deployment |
+| **Save for Later** | Preserve Disk Image | JOS captures to storage, no wipe |
+| **Fix It** | Apply Remediation | JOS executes scripted steps |
+| **Needs Human** | Escalate to Manual Review | Case assigned, JOS halts |
+| **Walk-in** | Self-Service Intake | User-submitted triage data |
+| **Front Desk** | Diagnostic Agent | Automated triage processor |
+| **Case File** | Diagnostic Record | Database entry + linked logs |
+| **Sign-off** | Approval | Authenticated user action with timestamp |
+
+### Skin Activation Notes
+1. **Christopher Skin**: Renames "Self-Service Diagnostics" to "Christopher Walk-in Clinic". Reception agent displays as "B.A.B.S." All diagnostic language adopts measured cadence. Functionally identical to Clinical.
+2. **Shatner Skin**: High-visibility alert styling. Adds confirmation interstitials for dramatic effect. Intended for limited/demonstration use. Not recommended for daily operation.
+3. **Skin Parity**: All skins must present identical options and data. No skin may hide or add functional elements. Skins are CSS + string replacement only.
+
+### Compliance Notes
+- All destructive actions require authenticated approval in CLINIC regardless of theme.
+- Audit logs, exports, and API responses use Clinical terminology exclusively.
+- Theme selection is user preference and not logged as part of case audit trail.
+- Shatner skin includes additional confirmation step: "Confirm dramatic presentation does not indicate higher severity."
+
+---
+**Theme System Status:** Design approved. Clinical default ships in Phase 2.0. Christopher skin ships in Phase 2.7. Shatner skin disabled by default, requires manual flag.
