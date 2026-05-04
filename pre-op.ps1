@@ -62,12 +62,14 @@ Get-ChildItem C:\Windows\LiveKernelReports -Recurse -ErrorAction SilentlyContinu
 
 # 6. BitLocker: suspend for offline JOS scan
 Write-Host "[5/6] Checking BitLocker..."
+$BitlockerSuspendedThisRun = $false
 $BitlockerStatus = Get-BitLockerVolume -MountPoint "C:" -ErrorAction SilentlyContinue
 if ($BitlockerStatus) {
     $BitlockerStatus | Format-List > "$LogDir\16_bitlocker_pre.txt"
     if ($BitlockerStatus.ProtectionStatus -eq "On") {
         Write-Host "Suspending BitLocker for 1 reboot - JOS can now offline scan" -ForegroundColor Yellow
         Suspend-BitLocker -MountPoint "C:" -RebootCount 1
+        $BitlockerSuspendedThisRun = $true
         "BitLocker suspended for 1 reboot at $Timestamp" > "$LogDir\16_bitlocker_suspended.txt"
     } else {
         "BitLocker already suspended or off" > "$LogDir\16_bitlocker_suspended.txt"
@@ -84,7 +86,7 @@ $Manifest = @{
     model = (Get-WmiObject Win32_ComputerSystem).Model
     serial = (Get-WmiObject Win32_BIOS).SerialNumber
     os_version = (Get-ComputerInfo).WindowsProductName
-    bitlocker_suspended = $true
+    bitlocker_suspended = $BitlockerSuspendedThisRun
     files = (Get-ChildItem $LogDir | Select-Object Name, Length).Name
     premed_version = "1.0"
 }

@@ -1,5 +1,5 @@
 # FOGDoctor: Technical Specification v0.1
-**Repo:** /WENDY/FOGDoctor/
+**Repo:** FOGDoctor CLI package (implementation notes: `docs/FOGDoctor-cli-brief.md`)
 **License:** MIT
 **Language:** Python 3.10+
 **Maintainer:** Splippers.com Ltd
@@ -18,7 +18,7 @@ Single-file Python CLI that diagnoses why FOG Project multicast isn’t sending 
 
 ### 3.1 Diagnostic Checks
 | Check ID | Name | Command on FOG | Pass Condition | Fix Suggestion on Fail |
-| --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | `svc` | Services | `systemctl is-active FOGMulticastManager FOGScheduler mysql` | All return `active` | `sudo systemctl restart FOGMulticastManager && sudo systemctl restart FOGScheduler` |
 | `nic` | NIC Binding | `grep interface /opt/fog/.fogsettings` + `ip -o link show` | FOG interface exists and state UP | Re-run `/opt/fog/utils/installfog.sh -y` to rebind |
 | `udp` | UDP Traffic | `timeout 5 tcpdump -i {nic} udp port 9000 -c 1` during active task | ≥1 packet captured | Check FOG GUI → Multicast Settings → `UDPCAST INTERFACE` |

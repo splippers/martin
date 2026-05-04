@@ -1,6 +1,5 @@
 # WENDY Project: Business Plan v0.1
 **Entity:** Splippers.com Ltd
-**Author:** Jonathan Davis
 **Date:** 2026-05-04
 **Status:** Live
 **Overhead:** £27.75/month | **Stack:** Cursor + Google Workspace + GitHub
@@ -48,7 +47,7 @@ All built/served with Cursor + Google Workspace. No other SaaS.
 
 ## 6. Risk & Mitigation
 | Risk | Impact | Mitigation |
-| --- | --- |
+| --- | --- | --- |
 | EA NI conflict of interest | Legal/HR | No on-site work, no EA IP, LTD separation, out-of-hours only |
 | FOG Project EOL | Product relevance | FOG Doctor diagnostics apply to Clonezilla/MDT. Pivot if needed |
 | Founder time | Slow shipping | Cursor generates 80% of code/docs. Ship v1 ugly, iterate live |

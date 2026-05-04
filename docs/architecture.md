@@ -22,13 +22,13 @@ WENDY does not ship bespoke signing keys yet: compatibility depends on preservin
 
 2. The host copies **`wendy-runtime/`** into **`/usr/share/wendy-runtime/`** inside the chroot plus an **`initramfs-tools` hook** that embeds those files verbatim at **`wendy-runtime/`** in each generated initramfs.
 
-3. Inside the chroot, `apt-get` installs **`linux-image-generic`**, **`casper`**, networking bits, BusyBox helpers, shim, signed GRUB, and supporting packages. `update-initramfs -c -k …` emits a fresh intramfs that already contains **`wendy-runtime/`**.
+3. Inside the chroot, `apt-get` installs **`linux-image-generic`**, **`casper`**, networking bits, BusyBox helpers, shim, signed GRUB, and supporting packages. `update-initramfs -c -k …` emits a fresh initramfs that already contains **`wendy-runtime/`**.
 
 4. **`mksquashfs`** compresses the populated root filesystem (excluding ephemeral mount points such as **`proc`** / **`sys`**) into **`filesystem.squashfs`**, which **`casper`** mounts at runtime behind an overlay.
 
 5. **`EFI/BOOT/BOOTX64.EFI`** and **`grubx64.efi`** originate from Ubuntu’s shim/GRUB packages inside the rootfs tree.
 
-6. **`grub-mkrescue`** emits a hybrid BIOS+UEFI-capable ISO. Internally GRUB invokes **Xorriso**/**mkisofs** compatibility front-ends (`--xorriso=mkisofs`) to lay out El‑Torito and EFI payloads.
+6. **`grub-mkrescue`** emits a hybrid BIOS+UEFI-capable ISO and shells out to the host **xorriso** toolchain for El‑Torito and EFI layout (see `build/scripts/build_iso.sh`; avoid hosts that only ship a **mkisofs** wrapper without xorriso).
 
 ---
 

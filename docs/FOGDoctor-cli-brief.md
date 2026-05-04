@@ -1,3 +1,9 @@
+# FOGDoctor CLI — implementation brief
+
+Authoring notes for a future single-file `fogdoctor.py` tool (not executable build output). See also `docs/Software Specs/FOGDoctor.md`.
+
+---
+
 Create /WENDY/FOGDoctor/fogdoctor.py as a single-file CLI.
 
 Use Click for CLI, Rich for tables, Paramiko for SSH.

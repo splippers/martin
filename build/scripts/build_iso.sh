@@ -10,10 +10,14 @@ WENDY_RT_SRC="${BUILD_TOP}/initrd/wendy-runtime"
 RELEASE="${RELEASE:-noble}"
 ARCH="${ARCH:-amd64}"
 
-ROOTFS="${BUILD_TOP}/tmp-build/rootfs"
-ISO_STAGE="${BUILD_TOP}/tmp-build/iso"
-BOOT_WORK="${BUILD_TOP}/tmp-build/boot"
-INITRD_WORK="${BUILD_TOP}/tmp-build/initrd-work"
+# Rootfs/debootstrap staging must sit on a host filesystem with ample free space. Network/home
+# mounts that are nearly full routinely break mkinitramfs (“No space left on device”).
+WORK_ROOT="${WENDY_WORK:-${TMPDIR:-/tmp}/wendy-iso.${RELEASE}.${ARCH}.$$}"
+
+ROOTFS="${WORK_ROOT}/rootfs"
+ISO_STAGE="${WORK_ROOT}/iso"
+BOOT_WORK="${WORK_ROOT}/boot"
+INITRD_WORK="${WORK_ROOT}/initrd-work"
 OUT_ISO="${REPO_ROOT}/wendy.iso"
 OUT_PXE="${REPO_ROOT}/pxe"
 
@@ -29,9 +33,10 @@ for cmd in debootstrap xorriso mksquashfs grub-mkrescue; do
 done
 
 umask 022
-rm -rf "${BUILD_TOP}/tmp-build"
+rm -rf "${WORK_ROOT}"
 mkdir -p "${ROOTFS}" "${ISO_STAGE}" "${BOOT_WORK}" "${INITRD_WORK}"
 
+log "Work dir: ${WORK_ROOT}"
 log "[1/8] debootstrap (${RELEASE}/${ARCH})"
 DEB_MIRROR="${DEBIAN_MIRROR:-http://archive.ubuntu.com/ubuntu/}"
 debootstrap_opts=(--variant=minbase --merged-usr "--arch=${ARCH}")
@@ -65,6 +70,7 @@ HOOK
 chmod +x "${ROOTFS}/etc/initramfs-tools/hooks/wendy-copy-runtime"
 
 cleanup_mounts() {
+	if mountpoint -q "${ROOTFS}/dev/pts"; then umount "${ROOTFS}/dev/pts" || true; fi
 	if mountpoint -q "${ROOTFS}/dev"; then umount "${ROOTFS}/dev" || true; fi
 	if mountpoint -q "${ROOTFS}/sys"; then umount "${ROOTFS}/sys" || true; fi
 	if mountpoint -q "${ROOTFS}/proc"; then umount "${ROOTFS}/proc" || true; fi
@@ -81,8 +87,7 @@ chroot_pkg_install() {
 	mountpoint -q "${ROOTFS}/proc" || mount -t proc proc "${ROOTFS}/proc"
 	mountpoint -q "${ROOTFS}/sys" || mount -t sysfs sys "${ROOTFS}/sys"
 	mountpoint -q "${ROOTFS}/dev" || mount --bind /dev "${ROOTFS}/dev"
-
-	export DEBIAN_FRONTEND=noninteractive
+	mountpoint -q "${ROOTFS}/dev/pts" || mount -t devpts -o newinstance,ptmxmode=0666 devpts "${ROOTFS}/dev/pts" 2>/dev/null || mount -t devpts devpts "${ROOTFS}/dev/pts"
 	chroot "${ROOTFS}" /bin/bash <<'CHROOT'
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -120,9 +125,15 @@ log "[4/8] staging casper payloads (kernel + squashfs)"
 mkdir -p "${ISO_STAGE}/casper" "${ISO_STAGE}/boot" "${ISO_STAGE}/boot/grub"
 
 install -Dm644 "${ROOTFS}/boot/${KERNEL_IMAGE}" "${ISO_STAGE}/casper/${KERNEL_IMAGE}"
-INITRD_REAL="$(ls "${ROOTFS}/boot"/initrd.img-*"${KERNEL_IMAGE#vmlinuz}"* 2>/dev/null | head -1)"
-[[ -n "${INITRD_REAL}" && -f "${INITRD_REAL}" ]] || INITRD_REAL="$(ls "${ROOTFS}/boot"/initrd.img* 2>/dev/null | sort -V | tail -1)"
-[[ -n "${INITRD_REAL}" ]] || die "could not locate initrd in chroot boot/"
+
+KERNEL_VER="${KERNEL_IMAGE#vmlinuz-}"
+INITRD_REAL="${ROOTFS}/boot/initrd.img-${KERNEL_VER}"
+if [[ ! -f "${INITRD_REAL}" ]]; then
+	mapfile -t _initrds < <(find "${ROOTFS}/boot" -maxdepth 1 -name 'initrd.img-*' -type f | sort -V)
+	((${#_initrds[@]})) || die "could not locate initrd in chroot boot/"
+	INITRD_REAL="${_initrds[-1]}"
+fi
+[[ -f "${INITRD_REAL}" ]] || die "could not locate initrd in chroot boot/"
 install -Dm644 "${INITRD_REAL}" "${ISO_STAGE}/casper/initrd-wendy.img"
 install -Dm644 "${ROOTFS}/boot/${KERNEL_IMAGE}" "${ISO_STAGE}/boot/${KERNEL_IMAGE}"
 install -Dm644 "${ISO_STAGE}/casper/initrd-wendy.img" "${ISO_STAGE}/boot/initrd-wendy.img"
@@ -215,7 +226,6 @@ if command -v grub-mkrescue >/dev/null; then
 	xorriso -version >/dev/null 2>&1 || die "grub-mkrescue needs xorriso installed"
 	grub-mkrescue \
 		--compress=xz \
-		--xorriso=mkisofs \
 		-output "${OUT_ISO}" \
 		"${ISO_STAGE}"
 else

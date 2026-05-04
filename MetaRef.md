@@ -16,7 +16,7 @@ This file records deviations from **`CursorRef.md`**, toolchain assumptions, and
 
 | Topic | Observation |
 |-------|-------------|
-| GRUB entry paths | CursorRef illustrates `/boot/vmlinuz`; **casper** expects kernels under `/casper/` with `boot=casper` appended. The shipped `README.md` documents both conventions because the ISO duplicates artefacts into **`boot/`** and **`casper/`**. Active GRUB stanza prefers `/casper/…`. |
+| GRUB entry paths | CursorRef illustrates `/boot/vmlinuz`; **casper** expects kernels under `/casper/` with `boot=casper` appended. **`build_iso.sh`** and **`README.md`** use `/casper/…` as the primary example; **`boot/`** mirrors the same files for tooling that expects that layout. |
 | “Extract stock initrd, inject runtime, repack” | Implemented via `/etc/initramfs-tools/hooks/wendy-copy-runtime` followed by **`update-initramfs -c`**, which reliably carries forward Ubuntu’s upstream compression/feature set instead of brittle manual unpacking. |
 | `initrd-work/` directory | Mentioned for manual experiments but unused by **`build_iso.sh`** after pivoting to the hook-based workflow. Keeping the directory honours the scaffolding list without adding dead logic. |
 
@@ -27,7 +27,8 @@ This file records deviations from **`CursorRef.md`**, toolchain assumptions, and
 - **Root privileges**: `debootstrap`, bind mounts into the chroot, and optional `losetup`-free tooling all expect `sudo`/root execution.
 - **Host architecture**: Scripted for **amd64** targets; AArch64 PXE artefacts are out of scope for this scaffold.
 - **Network mirrors**: Export **`DEBIAN_MIRROR`** before invoking `sudo bash build_iso.sh` to repoint the **debootstrap** mirror; customise the APT stanza written into the chroot (still templated inline in **`build_iso.sh`**) when you truly cannot reach `archive.ubuntu.com`.
-- **ISO assembly**: Packaging calls **`grub-mkrescue --xorriso=mkisofs`**, whose backend is Xorriso on Ubuntu-derived hosts—this honours the CursorRef requirement to leverage Xorriso while avoiding handwritten El‑Torito math.
+- **ISO assembly**: Packaging calls **`grub-mkrescue`**, which shells out to the host **`xorriso`** toolchain (the earlier `--xorriso=mkisofs` shim failed on minimalist hosts lacking the expected wrappers).
+- **Disk headroom**: The unattended build originally failed generating `initramfs` (**ENOSPC** hard-linking into `/var/tmp`) because this repository sits on an almost-full Gluster-backed mount (~5 GiB free). **`WORK_ROOT`** now defaults to **`${TMPDIR:-/tmp}`**, with **`WENDY_WORK=…`** to override explicitly.
 - **`grub-editenv`** may fail benignly early in the staging tree; harmless `|| true`.
 
 ---

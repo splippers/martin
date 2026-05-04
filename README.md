@@ -23,11 +23,13 @@ sudo apt install -y \
   shim-signed isolinux syslinux-common mtools wget curl
 ```
 
-Additional packages pulled or used implicitly by tooling: `grub-common`, `squashfs-tools`, `xorriso` (often already present alongside `xorriso`).
+Additional dependencies such as `grub-common` are usually installed alongside the GRUB packages above.
 
 ---
 
 ## Build the ISO
+
+The debootstrap and rootfs staging tree defaults to `${TMPDIR:-/tmp}` (see `WORK_ROOT` in `build/scripts/build_iso.sh`). That keeps bulky transient payloads off cramped network-mounted project disks, because `mkinitramfs` will fail with **no space left on device** otherwise. Export **`WENDY_WORK=/path/with/free-space`** before `sudo bash build_iso.sh` if you want a fixed location.
 
 ```bash
 cd build/scripts
@@ -50,12 +52,12 @@ pxe/
 
 Inside the ISO, GRUB launches the shipped kernel/initrd under `/casper/` with `boot=casper` so the squashfs filesystem is discovered reliably.
 
-Example menu entry semantics (paths on the ISO use `/casper/` for discovery):
+Example menu entry (matches `build/scripts/build_iso.sh`; kernel version suffix comes from the installed `linux-image-generic` package):
 
 ```
 menuentry "WENDY — Windows Evaluation using Neural Diagnostics for You" {
-    linux /boot/vmlinuz quiet splash
-    initrd /boot/initrd-wendy.img
+    linux /casper/vmlinuz-<kernel-ver> boot=casper noprompt splash quiet ---
+    initrd /casper/initrd-wendy.img
 }
 ```
 
