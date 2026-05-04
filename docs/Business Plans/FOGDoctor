@@ -1,1 +1,64 @@
-.
+# WENDY Project: Business Plan v0.1
+**Entity:** Splippers.com Ltd
+**Author:** Jonathan Davis
+**Date:** 2026-05-04
+**Status:** Live
+**Overhead:** £27.75/month | **Stack:** Cursor + Google Workspace + GitHub
+
+## 1. Executive Summary
+WENDY is Splippers.com’s skunkworks program to turn public-sector IT pain into books, software, and tools. No staff, no funding, no deadlines. First product: FOG Doctor — a diagnostic CLI for FOG Project multicast imaging failures.
+
+**Model:** Free open-source tool → £9 ebook → £49 software pack → £199 remote rescue.
+**Target:** 32,000 UK schools. 8,000 actively use FOG/Clonezilla.
+**Year 1 Goal:** £5,300 revenue on £336 cost.
+
+## 2. Problem Statement
+UK school IT teams lose 6-15hrs per site re-imaging device batches. FOG Project is free but multicast fails silently. Common causes: IGMP snooping, NIC binding, dead FOGMulticastManager, mis-tuned udp-sender. No commercial support exists. Each failed imaging day costs £300+ in staff time. Current fix = 2008-era forum posts.
+
+## 3. Solution: The WENDY Stack
+| Tier | Product | Price | Delivery | Tech |
+| --- | --- | --- | --- | --- |
+| Free | FOG Doctor CLI | £0 | GitHub, MIT | Python, Rich, Paramiko |
+| Book | Zero-Touch School Imaging with FOSS | £9 PDF | Gumroad/Stripe | Google Docs + Gemini |
+| Software | Splippers Imaging Suite | £49 | ZIP + License | FOG Doctor + switch templates + configs |
+| Service | 1hr Remote FOG Rescue | £199 | Google Meet | Stripe Payment Link |
+
+All built/served with Cursor + Google Workspace. No other SaaS.
+
+## 4. Market Analysis
+- **TAM**: 32,163 UK schools. Avg 2 IT staff each.
+- **SAM**: ~8,000 schools using FOG/Clonezilla/MDT. EduGeek.net active users: 40,000.
+- **SOM Year 1**: 200 customers. Conservative: 150 x £9 = £1,350. 40 x £49 = £1,960. 10 x £199 = £1,990. **Total: £5,300**.
+
+## 5. Operations & Finance
+**Monthly OpEx**
+1. Google Workspace: 1 seat @ £6/month
+2. Cursor.com: ~£20/month
+3. Companies House: £13/year = £1.08/month
+4. Domain via Cloudflare: £8/year = £0.67/month
+**Total: £27.75/month**
+
+**IP & Compliance**: All IP held by Splippers.com Ltd. R&D performed out-of-hours on personal equipment. No EA NI resources used. Founder contract reviewed for IP clauses. LTD acts as legal firewall.
+
+**12-Month Roadmap**
+1. **Month 1**: Ship FOG Doctor v1.0 to GitHub. Launch on EduGeek, r/k12sysadmin, r/sysadmin.
+2. **Month 3**: Publish £9 ebook. Target 100 sales from free tool users.
+3. **Month 6**: Release £49 Suite. First £1k MRR month.
+4. **Month 12**: Publish case study: “20 laptops re-imaged in 4 mins”. Submit talk to Jisc/Bett.
+
+## 6. Risk & Mitigation
+| Risk | Impact | Mitigation |
+| --- | --- |
+| EA NI conflict of interest | Legal/HR | No on-site work, no EA IP, LTD separation, out-of-hours only |
+| FOG Project EOL | Product relevance | FOG Doctor diagnostics apply to Clonezilla/MDT. Pivot if needed |
+| Founder time | Slow shipping | Cursor generates 80% of code/docs. Ship v1 ugly, iterate live |
+| Support burden | Scales badly | Free tier = community GitHub Issues. Paid tiers only get email |
+
+## 7. Success Metrics
+1. **GitHub Stars**: 100+ in 90 days = product-market signal
+2. **Conversion**: 5% free → paid within 12 months
+3. **Time saved**: Track via Google Sheet audit logs from FOG Doctor. Target: 1,000hrs saved for users in Year 1
+
+---
+
+*This document is held under Splippers.com Ltd. WENDY is a trading project of the company.*
