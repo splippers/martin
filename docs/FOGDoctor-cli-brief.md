@@ -1,6 +1,6 @@
 # FOGDoctor CLI — implementation brief
 
-Authoring notes for a future single-file `fogdoctor.py` tool (not executable build output). See also `docs/Software Specs/FOGDoctor.md`.
+Authoring notes for a future single-file `fogdoctor.py` tool (not executable build output). See also `docs/Software Specs/FOGDoctor.md`. For how repo docs fit together, see **[Repository documentation](../README.md#repository-documentation)** in **`README.md`**.
 
 ---
 

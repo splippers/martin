@@ -9,6 +9,7 @@ This repository contains:
 - Branding placeholders  
 - PXE‑ready boot assets  
 - A modular structure for future diagnostic tools  
+- An optional **ElAIne** host-side Ollama scaffold (**`ElAIne.md`**, **`ElAIne/`**) — offline diagnostic prompts on a developer machine; **not** bundled in **`wendy.iso`**
 
 ---
 
@@ -65,4 +66,11 @@ The build script mirrors `vmlinuz` and `initrd-wendy.img` into **`boot/`** and *
 
 ---
 
-See `CursorRef.md` for the authoring note that bootstrapped this repository, `docs/architecture.md` for the technical pipeline, and `MetaRef.md` for known limitations and deltas from the authoring spec.
+## Repository documentation
+
+- **`README.md`** — ISO and PXE build quick start (this file).
+- **`CursorRef.md`** — Contributor governance, branch policy, and planned module responsibilities.
+- **`MetaRef.md`** — Scaffold deltas, toolchain assumptions, and risk notes versus earlier specs.
+- **`docs/architecture.md`** — Secure Boot chain, ISO pipeline, initrd layout, and Llama3 integration plan.
+- **`ROADMAP.md`** — WENDY + JOS phased programme, hardware baseline, and UX/theme addenda.
+- **`ElAIne.md`** and **`ElAIne/`** — Optional host-side Ollama scaffold for offline diagnostic prompts; **not** part of the boot image or **`wendy-runtime/`** pipeline above.

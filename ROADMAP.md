@@ -16,7 +16,7 @@
 ### Phase 0: Foundation - COMPLETE
 - Define architecture: 3571 + FOG + WENDY + JOS + CLINIC
 - Write `pre-op.ps1` / Pre-Med client prep script
-- Establish output standard: `C:\BitzNBobz\%HOSTNAME%_%TIMESTAMP%` [x]
+- [x] Establish output standard: `C:\BitzNBobz\%HOSTNAME%_%TIMESTAMP%`
 
 ### Phase 1: MVP Proving Ground - DO THIS NEXT
 **Objective:** Prove 1 full loop works end-to-end on worst-case hardware.
@@ -123,7 +123,7 @@
 Complete **Phase 1.1 → 1.5** on 1x 2020 Latitude. No new features until the loop works and first Death Certificate is signed in CLINIC.
 
 ---
-**Repo Notes:** Update checkboxes as you go. Link issues to Phase items. All nukes require a signed Death Certificate in CLINIC. This doc is the source of truth.
+**Repo notes:** Update checkboxes as you go. Link issues to Phase items. All nukes require a signed Death Certificate in CLINIC. This doc is the programme source of truth for WENDY + JOS delivery. For how repo files fit together (including **`ElAIne.md`** / **`ElAIne/`** vs the ISO build), see **[Repository documentation](README.md#repository-documentation)** in **`README.md`**.
 
 ---
 

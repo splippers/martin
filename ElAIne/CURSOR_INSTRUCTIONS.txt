@@ -1,0 +1,7 @@
+ElAIne scaffold lives under ElAIne/ in the WENDY repo root.
+
+After checkout:
+  chmod +x ElAIne/ingest.sh ElAIne/scripts/build.sh
+  cd ElAIne && ./scripts/build.sh
+
+Success criteria: Ollama model "elaine" exists and answers a test prompt.

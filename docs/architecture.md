@@ -2,6 +2,8 @@
 
 This document describes how WENDY is assembled today and how modular diagnostics are expected to evolve.
 
+For the consolidated documentation map, see **[Repository documentation](../README.md#repository-documentation)** in **`README.md`**.
+
 ---
 
 ## Secure Boot chain
@@ -73,3 +75,5 @@ Because full model weights are sizeable, shipping them inside the ISO is optiona
 4. **Feedback loop hooks** emitting JSON reports under `/var/log/wendy/` for auditors; no automatic remediation without signed policy files.
 
 Llama-backed suggestions remain advisory—the operator approves scripted repairs.
+
+**Host-side note:** **`ElAIne.md`** / **`ElAIne/`** describe a separate optional Ollama scaffold for developer machines. That stack is **not** the in-ISO **`llama.cpp`** / GGUF path above unless you explicitly merge payloads later.

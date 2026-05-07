@@ -1,6 +1,8 @@
 # Meta reference — authoring deltas & operational caveats
 
-This file records deviations from **`CursorRef.md`**, toolchain assumptions, and risk areas uncovered while scaffolding the repo.
+This file records deviations from **`CursorRef.md`**, toolchain assumptions, and risk areas uncovered while scaffolding the repo. Its scope is the ISO, chroot, and initrd scaffold. **`ElAIne.md`** / **`ElAIne/`** are optional host-side tooling and sit outside that pipeline.
+
+For the consolidated documentation map, see **[Repository documentation](README.md#repository-documentation)** in **`README.md`**.
 
 ---
 

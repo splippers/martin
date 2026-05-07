@@ -5,6 +5,8 @@
 **Maintainer:** Splippers.com Ltd
 **Dependencies:** paramiko, rich, google-api-python-client, google-auth, click
 
+Repo documentation map: **[Repository documentation](../../README.md#repository-documentation)** in **`README.md`**.
+
 ## 1. Purpose
 Single-file Python CLI that diagnoses why FOG Project multicast isn’t sending UDP. Runs from a technician’s laptop, connects to FOG server via SSH, returns root cause + fix commands. Logs audit trail to Google Sheets. Target runtime: <15 seconds.
 

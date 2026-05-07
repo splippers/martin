@@ -1,0 +1,6 @@
+kb-data/*.html
+kb-data/*.txt
+kb-data/*.json
+*.log
+.ollama/
+**/__pycache__/
