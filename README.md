@@ -1,76 +1,135 @@
 # WENDY — Windows Evaluation using Neural Diagnostics for You
 
-WENDY is a portable, SecureBoot‑compatible Linux environment designed to boot from USB or PXE and analyse offline Windows systems using a modular diagnostic framework powered by Llama3.
+A portable, Secure-Boot-compatible diagnostic environment for analysing offline Windows systems.
 
-This repository contains:
+Type: Infrastructure / Diagnostic Tool  
+Intent: Pillar (credibility) + Enabler  
+Audience: Sysadmins, IT Operations, Incident Responders
 
-- The ISO build system  
-- The initrd runtime skeleton  
-- Branding placeholders  
-- PXE‑ready boot assets  
-- A modular structure for future diagnostic tools  
-- An optional **ElAIne** host-side Ollama scaffold (**`ElAIne.md`**, **`ElAIne/`**) — offline diagnostic prompts on a developer machine; **not** bundled in **`wendy.iso`**
+==================================================
 
----
+OVERVIEW
 
-## Build requirements
+WENDY is a portable Linux environment designed to boot from USB or PXE and perform structured analysis of offline Windows installations.
 
-Ubuntu 24.04 or later (amd64 host recommended). Required packages:
+It is intended for situations where the Windows system cannot be booted safely or reliably, and where diagnostics must be performed in a controlled, observable environment.
 
-```bash
-sudo apt update
-sudo apt install -y \
-  debootstrap xorriso squashfs-tools grub-pc-bin grub-efi-amd64-bin \
-  shim-signed isolinux syslinux-common mtools wget curl
-```
+WENDY is Secure Boot compatible and designed for modern UEFI systems.
 
-Additional dependencies such as `grub-common` are usually installed alongside the GRUB packages above.
+==================================================
 
----
+WHAT WENDY IS (AND IS NOT)
 
-## Build the ISO
+WENDY IS:
+- An offline Windows diagnostics environment
+- A Secure-Boot-compatible USB / PXE boot target
+- A modular framework for inspection, analysis, and reporting
+- Explicitly designed for operational and forensic contexts
 
-The debootstrap and rootfs staging tree defaults to `${TMPDIR:-/tmp}` (see `WORK_ROOT` in `build/scripts/build_iso.sh`). That keeps bulky transient payloads off cramped network-mounted project disks, because `mkinitramfs` will fail with **no space left on device** otherwise. Export **`WENDY_WORK=/path/with/free-space`** before `sudo bash build_iso.sh` if you want a fixed location.
+WENDY IS NOT:
+- A live-response agent
+- An always-on AI system
+- A replacement for Windows
+- A consumer support tool
 
-```bash
-cd build/scripts
-sudo bash build_iso.sh
-```
+==================================================
 
-Artifacts:
+CORE DESIGN PRINCIPLES
 
-- **`wendy.iso`** — hybrid ISO suitable for removable media writing (hosts `EFI/BOOT/` + `casper/` + duplicate kernel/initrd under `boot/` for documentation parity).
+OFFLINE FIRST  
+Windows installations are analysed cold. No booting, no mutation, no hidden execution.
 
-- **`pxe/`** — unpacked boot files:
+SECURE BOOT AWARE  
+The boot chain is designed for modern UEFI environments without workarounds that undermine trust.
 
-```
-pxe/
- ├── shimx64.efi
- ├── grubx64.efi
- ├── vmlinuz
- └── initrd-wendy.img
-```
+MODULAR DIAGNOSTICS  
+Analysis functionality is designed to be composed from independent modules rather than monolith scripts.
 
-Inside the ISO, GRUB launches the shipped kernel/initrd under `/casper/` with `boot=casper` so the squashfs filesystem is discovered reliably.
+OPTIONAL AI ASSISTANCE  
+LLM-based interpretation is explicitly separated from the boot environment and not required at runtime.
 
-Example menu entry (matches `build/scripts/build_iso.sh`; kernel version suffix comes from the installed `linux-image-generic` package):
+==================================================
 
-```
-menuentry "WENDY — Windows Evaluation using Neural Diagnostics for You" {
-    linux /casper/vmlinuz-<kernel-ver> boot=casper noprompt splash quiet ---
-    initrd /casper/initrd-wendy.img
-}
-```
+ARCHITECTURE OVERVIEW
 
-The build script mirrors `vmlinuz` and `initrd-wendy.img` into **`boot/`** and **`casper/`** so both styles remain valid.
+WENDY consists of three conceptual layers:
 
----
+1. BOOT ENVIRONMENT  
+A Secure-Boot-compatible Linux ISO suitable for USB or PXE boot.
 
-## Repository documentation
+2. RUNTIME SKELETON  
+An initrd-based execution environment providing mounting, inspection, and tooling scaffolds.
 
-- **`README.md`** — ISO and PXE build quick start (this file).
-- **`CursorRef.md`** — Contributor governance, branch policy, and planned module responsibilities.
-- **`MetaRef.md`** — Scaffold deltas, toolchain assumptions, and risk notes versus earlier specs.
-- **`docs/architecture.md`** — Secure Boot chain, ISO pipeline, initrd layout, and Llama3 integration plan.
-- **`ROADMAP.md`** — WENDY + JOS phased programme, hardware baseline, and UX/theme addenda.
-- **`ElAIne.md`** and **`ElAIne/`** — Optional host-side Ollama scaffold for offline diagnostic prompts; **not** part of the boot image or **`wendy-runtime/`** pipeline above.
+3. DIAGNOSTIC MODULES  
+Composable tools for filesystem inspection, registry analysis, event log parsing, and reporting.
+
+LLM-assisted interpretation is intentionally external to this stack.
+
+==================================================
+
+ELAIne (OPTIONAL)
+
+ElAIne is an optional host-side Ollama-backed scaffold for interpreting diagnostic outputs.
+
+Important boundaries:
+- ElAIne does not ship inside wendy.iso
+- ElAIne does not run on the target system
+- ElAIne consumes exported artefacts, not live data
+
+This separation is deliberate and non-negotiable.
+
+==================================================
+
+BUILD TARGETS
+
+WENDY produces two primary artefacts:
+
+- wendy.iso  
+  A hybrid ISO suitable for USB media and documenting the boot pipeline.
+
+- pxe/  
+  Extracted boot assets for network deployment.
+
+Both targets share the same kernel and initrd logic to ensure behavioural parity.
+
+==================================================
+
+REPOSITORY CONTENTS
+
+- build scripts for ISO and PXE artefacts
+- initrd runtime skeleton
+- branding placeholders
+- Secure Boot–compatible boot assets
+- documentation covering architecture and roadmap
+- optional ElAIne scaffold (host-side only)
+
+Generated artefacts are produced at build time and are not committed.
+
+==================================================
+
+RELATIONSHIP TO OTHER PROJECTS
+
+WENDY pairs naturally with imaging and deployment environments such as JOS.
+
+Typical lifecycle:
+- Deploy or recover systems with imaging tools
+- Diagnose failures or anomalies with WENDY
+- Feed outputs into human or assisted analysis pipelines
+
+==================================================
+
+STATUS
+
+Active development.
+
+WENDY is currently a build-complete scaffolding environment with a stable boot chain and a clearly defined diagnostic direction.
+
+==================================================
+
+FINAL NOTE
+
+WENDY is intentionally conservative.
+
+It values trust, clarity, and separation of concerns over novelty.
+
+That constraint is the point.
