@@ -1,78 +1,108 @@
-# WENDY — Windows Evaluation using Neural Diagnostics for You
+# M.A.R.T.I.N. — Mobile Automated Repair, Triage & Imaging Node
 
-A portable, Secure-Boot-compatible diagnostic environment for analysing offline Windows systems.
+A portable, Secure-Boot-compatible computer hospital for diagnosing, imaging, and recovering machines in the field.
 
 Type: Infrastructure / Diagnostic Tool  
 Intent: Pillar (credibility) + Enabler  
-Audience: Sysadmins, IT Operations, Incident Responders
+Audience: Sysadmins, IT Operations, Incident Responders  
+Heart: ElAIne (AI service desk agent, ward AI)
 
 ==================================================
 
 OVERVIEW
 
-WENDY is a portable Linux environment designed to boot from USB or PXE and perform structured analysis of offline Windows installations.
+M.A.R.T.I.N. is a portable Linux environment designed to boot from USB or PXE and perform structured triage, diagnosis, imaging, and recovery of machines across three wards:
 
-It is intended for situations where the Windows system cannot be booted safely or reliably, and where diagnostics must be performed in a controlled, observable environment.
+- MATERNITY  — new machine builds and image deployment (JOS / JOG)
+- A&E        — emergency triage and diagnosis of failed or suspect systems
+- MORGUE     — data recovery, death certificates, and end-of-life decisions
 
-WENDY is Secure Boot compatible and designed for modern UEFI systems.
+M.A.R.T.I.N. is Secure Boot compatible and designed for modern UEFI systems.
+It is operated from a Dell Mobile Precision 3571 (192.168.1.75) — screen smashed, running headless, exactly as a hospital should.
 
 ==================================================
 
-WHAT WENDY IS (AND IS NOT)
+WHAT M.A.R.T.I.N. IS (AND IS NOT)
 
-WENDY IS:
-- An offline Windows diagnostics environment
+M.A.R.T.I.N. IS:
+- A mobile computer hospital with three defined wards
+- An offline Windows diagnostics and imaging environment
 - A Secure-Boot-compatible USB / PXE boot target
-- A modular framework for inspection, analysis, and reporting
+- A modular framework for inspection, analysis, imaging, and reporting
 - Explicitly designed for operational and forensic contexts
 
-WENDY IS NOT:
+M.A.R.T.I.N. IS NOT:
 - A live-response agent
-- An always-on AI system
 - A replacement for Windows
 - A consumer support tool
 
 ==================================================
 
+WARDS
+
+A&E (Accident & Emergency)
+Triage for machines that cannot boot safely or reliably.
+Diagnostics performed cold — no booting, no mutation, no hidden execution.
+ElAIne interprets outputs and issues one of four verdicts:
+  - Prescription       (fixable, treatment plan issued)
+  - Cryonic Suspension (recoverable with effort, on ice)
+  - Death Certificate  (gone, documented)
+  - Death Warrant      (condemned, proceed to Morgue)
+
+The Christopher Walk-in Clinic handles minor ailments.
+
+MATERNITY
+New machine provisioning via JOS (Jonathan's OS) and JOG (Jonathan's Opensource Ghost).
+Multicast imaging, USB-Ethernet DHCP isolation, Secure Boot-compliant FOG replacement.
+Where machines are born.
+
+MORGUE
+End-of-life processing. Data recovery from condemned hardware.
+Secure wiping, parts salvage assessment, final documentation.
+Where machines are laid to rest — or harvested for parts.
+
+==================================================
+
 CORE DESIGN PRINCIPLES
 
-OFFLINE FIRST  
-Windows installations are analysed cold. No booting, no mutation, no hidden execution.
+OFFLINE FIRST
+Machines are analysed cold. No booting, no mutation, no hidden execution.
 
-SECURE BOOT AWARE  
+SECURE BOOT AWARE
 The boot chain is designed for modern UEFI environments without workarounds that undermine trust.
 
-MODULAR DIAGNOSTICS  
+MODULAR DIAGNOSTICS
 Analysis functionality is designed to be composed from independent modules rather than monolith scripts.
 
-OPTIONAL AI ASSISTANCE  
+OPTIONAL AI ASSISTANCE
 LLM-based interpretation is explicitly separated from the boot environment and not required at runtime.
 
 ==================================================
 
 ARCHITECTURE OVERVIEW
 
-WENDY consists of three conceptual layers:
+M.A.R.T.I.N. consists of three conceptual layers:
 
-1. BOOT ENVIRONMENT  
+1. BOOT ENVIRONMENT
 A Secure-Boot-compatible Linux ISO suitable for USB or PXE boot.
 
-2. RUNTIME SKELETON  
+2. RUNTIME SKELETON
 An initrd-based execution environment providing mounting, inspection, and tooling scaffolds.
 
-3. DIAGNOSTIC MODULES  
+3. DIAGNOSTIC MODULES
 Composable tools for filesystem inspection, registry analysis, event log parsing, and reporting.
 
 LLM-assisted interpretation is intentionally external to this stack.
 
 ==================================================
 
-ELAIne (OPTIONAL)
+ELAIne
 
-ElAIne is an optional host-side Ollama-backed scaffold for interpreting diagnostic outputs.
+ElAIne is the ward AI — M.A.R.T.I.N.'s on-site intelligence and service desk agent.
+She runs locally via Ollama (offline-capable) and interprets diagnostic artefacts exported from the boot environment.
 
 Important boundaries:
-- ElAIne does not ship inside wendy.iso
+- ElAIne does not ship inside the boot ISO
 - ElAIne does not run on the target system
 - ElAIne consumes exported artefacts, not live data
 
@@ -82,12 +112,12 @@ This separation is deliberate and non-negotiable.
 
 BUILD TARGETS
 
-WENDY produces two primary artefacts:
+M.A.R.T.I.N. produces two primary artefacts:
 
-- wendy.iso  
+- martin.iso
   A hybrid ISO suitable for USB media and documenting the boot pipeline.
 
-- pxe/  
+- pxe/
   Extracted boot assets for network deployment.
 
 Both targets share the same kernel and initrd logic to ensure behavioural parity.
@@ -99,9 +129,9 @@ REPOSITORY CONTENTS
 - build scripts for ISO and PXE artefacts
 - initrd runtime skeleton
 - branding placeholders
-- Secure Boot–compatible boot assets
+- Secure Boot-compatible boot assets
 - documentation covering architecture and roadmap
-- optional ElAIne scaffold (host-side only)
+- ElAIne scaffold (host-side only)
 
 Generated artefacts are produced at build time and are not committed.
 
@@ -109,26 +139,28 @@ Generated artefacts are produced at build time and are not committed.
 
 RELATIONSHIP TO OTHER PROJECTS
 
-WENDY pairs naturally with imaging and deployment environments such as JOS.
+M.A.R.T.I.N. pairs naturally with imaging and deployment environments such as JOS and JOG,
+and sits within the broader ODIN imaging family alongside Crufharsis and Fog-Ambulance.
 
 Typical lifecycle:
-- Deploy or recover systems with imaging tools
-- Diagnose failures or anomalies with WENDY
-- Feed outputs into human or assisted analysis pipelines
+- Deploy or recover systems via Maternity (JOS / JOG)
+- Triage failures in A&E with ElAIne's interpretation
+- Issue verdict and route to Prescription, Suspension, or Morgue
 
 ==================================================
 
 STATUS
 
-Active development.
+Active development. Operated from Dell Mobile Precision 3571 (192.168.1.75).
 
-WENDY is currently a build-complete scaffolding environment with a stable boot chain and a clearly defined diagnostic direction.
+M.A.R.T.I.N. is currently a build-complete scaffolding environment with a stable boot chain,
+a clearly defined ward structure, and ElAIne standing by.
 
 ==================================================
 
 FINAL NOTE
 
-WENDY is intentionally conservative.
+M.A.R.T.I.N. is intentionally conservative.
 
 It values trust, clarity, and separation of concerns over novelty.
 
