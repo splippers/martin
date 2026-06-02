@@ -110,6 +110,7 @@ pre.log {
   <div class="tab" data-tab="vms">VMs</div>
   <div class="tab" data-tab="freshness">Freshness</div>
   <div class="tab" data-tab="drivers">Drivers</div>
+  <div class="tab" data-tab="dad">D.A.D.</div>
   <div class="tab" data-tab="network">Network</div>
   <div class="tab" data-tab="logs">Logs</div>
 </div>
@@ -137,9 +138,15 @@ pre.log {
     <thead><tr><th>Name</th><th>State</th><th>VNC</th><th>Autostart</th><th>Actions</th></tr></thead>
     <tbody></tbody>
   </table>
-  <div class="card" style="margin-top:12px" id="vnc-container" style="display:none">
-    <h3>VNC Console: <span id="vnc-title"></span></h3>
-    <iframe id="vnc-frame" class="vnc-frame" src=""></iframe>
+  <div class="card" style="margin-top:12px;display:none" id="vnc-container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">VNC Console: <span id="vnc-title"></span></h3>
+      <div style="display:flex;gap:6px">
+        <a class="btn btn-sm btn-primary" target="_blank" id="full-console-btn" href="#">Full Screen</a>
+        <button class="btn btn-sm" onclick="closeVNC()">Close</button>
+      </div>
+    </div>
+    <iframe id="vnc-frame" class="vnc-frame" src="" ></iframe>
   </div>
 </div>
 
@@ -173,6 +180,43 @@ pre.log {
   <div class="card">
     <h3>Models</h3>
     <pre class="log" id="driver-list" style="max-height:300px"></pre>
+  </div>
+</div>
+
+<!-- D.A.D. -->
+<div class="panel" id="panel-dad">
+  <div class="actions">
+    <button class="btn btn-primary" onclick="dadScan()">Scan FOG</button>
+    <button class="btn" onclick="dadStatus()">Refresh</button>
+    <button class="btn" onclick="dadManifest()">Download Manifest</button>
+    <button class="btn" onclick="dadServe()">Config SMB Share</button>
+    <button class="btn btn-primary" onclick="dadDownload()">Download from Dell</button>
+  </div>
+  <div class="card">
+    <h3>Driver Availability Directory</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:8px 0" id="dad-stats"></div>
+  </div>
+  <div class="card">
+    <h3>Windows Puller Script</h3>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:8px">
+      Run this on a Windows machine to auto-download drivers from Dell for all missing models:
+    </p>
+    <pre class="log" style="max-height:120px;font-size:11px">powershell -ExecutionPolicy Bypass -File \\192.168.88.99\DellDrivers\.scripts\dad-puller.ps1 -Action bulk</pre>
+    <div class="actions" style="margin-top:8px">
+      <button class="btn btn-sm" onclick="dadGenPuller()">Copy Puller Path</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Register a Driver Pack</h3>
+    <div class="form-row">
+      <input type="text" id="dad-model" placeholder="Model (e.g. Latitude 3440)" style="flex:2">
+      <input type="text" id="dad-cab" placeholder="CAB file path or URL" style="flex:3">
+      <button class="btn btn-primary" onclick="dadRegister()">Register</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Model Cache Status</h3>
+    <pre class="log" id="dad-output" style="max-height:400px">Run scan to see models...</pre>
   </div>
 </div>
 
@@ -298,7 +342,8 @@ async function refreshVMs() {
       <td class="actions" style="margin:0">
         ${!running ? `<button class="btn btn-sm btn-primary" onclick="vmAction('${v.name}','start')">Start</button>` : `<button class="btn btn-sm btn-danger" onclick="vmAction('${v.name}','shutdown')">Stop</button>`}
         ${running ? `<button class="btn btn-sm" onclick="vmAction('${v.name}','destroy')">Kill</button>` : ''}
-        <button class="btn btn-sm" onclick="openVNC('${v.name}')">VNC</button>
+        <button class="btn btn-sm btn-primary" onclick="openVNC('${v.name}')">VNC</button>
+        <a class="btn btn-sm" style="background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600" target="_blank" id="console-btn-${v.name}" href="#">&#x1f5a5; Console</a>
         ${v.autostart === 'yes' ? `<button class="btn btn-sm" onclick="vmAction('${v.name}','autostart-disable')">No Autostart</button>` : `<button class="btn btn-sm" onclick="vmAction('${v.name}','autostart')">Autostart</button>`}
       </td>
     </tr>`;
@@ -312,20 +357,20 @@ async function vmAction(name, action) {
 }
 
 async function openVNC(name) {
-  const r = await api(`/api/vnc/${name}`);
-  if (!r.vnc) { toast('No VNC display available', 'error'); return; }
-  // Try to proxy via websockify — use direct VNC link for now
-  // Show instructions since we can't easily embed noVNC without websockify
+  const r = await api(`/api/vnc/novnc/${name}`);
+  if (!r.novnc_url) { toast('No VNC display available', 'error'); return; }
   document.getElementById('vnc-container').style.display = 'block';
-  document.getElementById('vnc-title').textContent = `${name}: ${r.vnc}`;
-  document.getElementById('vnc-container').innerHTML = `
-    <h3>VNC Console: ${name}</h3>
-    <p style="color:var(--text-dim);margin:8px 0">
-      Connect with any VNC client:<br>
-      <code style="background:var(--bg);padding:4px 8px;border-radius:3px">vncviewer 192.168.88.99${r.vnc}</code>
-    </p>
-    <p style="color:var(--text-dim);font-size:11px">Or install noVNC for in-browser access.</p>
-  `;
+  document.getElementById('vnc-title').textContent = name;
+  document.getElementById('vnc-frame').src = r.novnc_url;
+  const btn = document.getElementById(`console-btn-${name}`);
+  if (btn) btn.href = r.novnc_url;
+  const full = document.getElementById('full-console-btn');
+  if (full) full.href = r.novnc_url;
+}
+
+function closeVNC() {
+  document.getElementById('vnc-container').style.display = 'none';
+  document.getElementById('vnc-frame').src = '';
 }
 
 async function createVM() {
@@ -448,6 +493,74 @@ async function refreshLogs() {
     out += `=== ${src} ===\n${content}\n\n`;
   }
   document.getElementById('log-output').textContent = out;
+}
+
+// ── D.A.D. ────────────────────────────────────────────────────
+async function dadScan() {
+  document.getElementById('dad-output').textContent = 'Scanning FOG inventory...';
+  const r = await api('/api/dad/scan');
+  document.getElementById('dad-output').textContent = r.out || '(no output)';
+  dadStatus();
+}
+async function dadStatus() {
+  const r = await api('/api/dad/status');
+  document.getElementById('dad-output').textContent = r.out || '(no output)';
+  const catalog = r.catalog || {};
+  const models = Object.keys(catalog.models || {});
+  const total = models.length;
+  let files = 0, cached = 0;
+  for (const m of models) {
+    const meta = catalog.models[m].meta || {};
+    if (meta.files) { cached++; files += meta.files; }
+  }
+  document.getElementById('dad-stats').innerHTML = `
+    <div class="stat"><div class="label">Models in FOG</div><div class="value">${total}</div></div>
+    <div class="stat"><div class="label">Cached</div><div class="value green">${cached}</div></div>
+    <div class="stat"><div class="label">Driver Files</div><div class="value">${files}</div></div>
+    <div class="stat"><div class="label">Missing</div><div class="value ${total - cached > 0 ? "yellow" : "green"}">${total - cached}</div></div>
+  `;
+}
+async function dadManifest() {
+  document.getElementById('dad-output').textContent = 'Generating manifest...';
+  const r = await api('/api/dad/manifest');
+  document.getElementById('dad-output').textContent = r.out || '(no output)';
+}
+async function dadServe() {
+async function dadDownload() {
+  document.getElementById("dad-output").textContent = "Downloading drivers from Dell (this may take 10-30 minutes)...";
+  const r = await api("/api/dad/download", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({})
+  });
+  document.getElementById("dad-output").textContent = r.out || r.err || "(done)";
+  if (r.ok) toast("Driver download complete");
+  dadStatus();
+}
+
+  document.getElementById('dad-output').textContent = 'Configuring SMB share...';
+  const r = await api('/api/dad/serve');
+  document.getElementById('dad-output').textContent = r.out || r.err || '(done)';
+}
+async function dadGenPuller() {
+  const text = 'powershell -ExecutionPolicy Bypass -File \\\\192.168.88.99\\DellDrivers\\.scripts\\dad-puller.ps1 -Action bulk';
+  await navigator.clipboard.writeText(text);
+  toast('Puller command copied to clipboard');
+}
+
+async function dadRegister() {
+  const model = document.getElementById('dad-model').value;
+  const cab = document.getElementById('dad-cab').value;
+  if (!model || !cab) { toast('Enter model and CAB path/URL', 'error'); return; }
+  document.getElementById('dad-output').textContent = 'Registering ' + model + '...';
+  const r = await api('/api/dad/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({model, cab}),
+  });
+  document.getElementById('dad-output').textContent = r.out || r.err || '(done)';
+  if (r.ok) toast('Registered ' + model);
+  dadStatus();
 }
 
 // ── Init ──────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+import os, json, re, subprocess
 """
 M.A.R.T.I.N. Maternity Ward — Web Console
 Flask-based web UI for managing golden images, driver cache, and network.
@@ -25,6 +25,7 @@ DRIVER_ROOT = Path("/var/lib/maternity/drivers")
 PIPELINE = BASE / "maternity-pipeline.sh"
 FRESHNESS_TRACKER = BASE / "freshness-tracker"
 DRIVER_CACHE = DRIVERS / "driver-cache.sh"
+DAD_DIR = BASE / "dad"
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -39,6 +40,9 @@ def run(cmd, timeout=30):
 
 def sudo(cmd, timeout=30):
     return run(["sudo"] + cmd, timeout)
+
+def strip_ansi(text):
+    return re.sub(r'\[[0-9;]*m', '', text)
 
 def get_vm_info():
     r = sudo(["virsh", "list", "--all", "--name"])
@@ -195,6 +199,55 @@ def api_drivers_list():
     r = sudo([str(DRIVER_CACHE), "list"], timeout=10)
     return jsonify({"list": r["out"], "ok": r["ok"]})
 
+
+
+@app.route("/api/dad/scan")
+def api_dad_scan():
+    r = sudo([str(DAD_DIR / "dad.sh"), "scan"], timeout=30)
+    r["out"] = strip_ansi(r["out"])
+    return jsonify({"ok": r["ok"], "out": r["out"], "err": r["err"]})
+
+@app.route("/api/dad/status")
+def api_dad_status():
+    r = sudo([str(DAD_DIR / "dad.sh"), "status"], timeout=15)
+    r["out"] = strip_ansi(r["out"])
+    catalog = Path(str(DRIVER_ROOT) + "/.catalog.json")
+    catalog_data = {}
+    if catalog.exists():
+        try:
+            catalog_data = json.loads(catalog.read_text())
+        except:
+            pass
+    return jsonify({"ok": r["ok"], "out": r["out"], "err": r["err"], "catalog": catalog_data})
+
+@app.route("/api/dad/manifest")
+def api_dad_manifest():
+    r = sudo([str(DAD_DIR / "dad.sh"), "manifest"], timeout=15)
+    r["out"] = strip_ansi(r["out"])
+    return jsonify({"ok": r["ok"], "out": r["out"], "err": r["err"]})
+
+@app.route("/api/dad/serve")
+def api_dad_serve():
+    r = sudo([str(DAD_DIR / "dad.sh"), "serve"], timeout=15)
+    r["out"] = strip_ansi(r["out"])
+    return jsonify({"ok": r["ok"], "out": r["out"], "err": r["err"]})
+
+@app.route("/api/dad/register", methods=["POST"])
+@app.route("/api/dad/download", methods=["POST"])
+def api_dad_download():
+    data = request.get_json()
+    model = data.get("model", "") if data else ""
+    r = sudo([str(DAD_DIR / "dad.sh"), "download", model] if model else [str(DAD_DIR / "dad.sh"), "download"], timeout=3600)
+    return jsonify({"ok": r["ok"], "out": strip_ansi(r["out"]), "err": r["err"]})
+
+def api_dad_register():
+    data = request.get_json()
+    model = data.get("model", "")
+    cab = data.get("cab", "")
+    if not model or not cab:
+        return jsonify({"ok": False, "err": "model and cab required"}), 400
+    r = sudo([str(DAD_DIR / "dad.sh"), "register", model, cab], timeout=300)
+    return jsonify({"ok": r["ok"], "out": r["out"], "err": r["err"]})
 @app.route("/api/drivers/update", methods=["POST"])
 def api_drivers_update():
     def stream():
@@ -298,3 +351,30 @@ def api_run_action():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=False)
+
+@app.route("/api/vnc/novnc/<name>")
+def api_vnc_novnc(name):
+    """Return noVNC websockify URL for a VM."""
+    vms = get_vm_info()
+    for vm in vms:
+        if vm["name"] == name:
+            vnc = vm["vnc"]
+            state = vm["state"]
+            ws_port = 0
+            if ":" in vnc:
+                port_str = vnc.rsplit(":", 1)[1]
+                try:
+                    port = int(port_str)
+                    if port < 100:
+                        port += 5900
+                    ws_port = port - 5900 + 6080
+                except ValueError:
+                    pass
+            return jsonify({
+                "name": name,
+                "state": state,
+                "vnc": vnc,
+                "ws_port": ws_port,
+                "novnc_url": f"http://192.168.88.99:{ws_port}/vnc.html?host=192.168.88.99&port={ws_port}&path=websockify&autoconnect=1&reconnect=1&reconnect_delay=2000" if ws_port else ""
+            })
+    return jsonify({"name": name, "state": "not found", "vnc": "", "ws_port": 0, "novnc_url": ""})
