@@ -56,6 +56,38 @@ New machine provisioning via JOS (Jonathan's OS) and JOG (Jonathan's Opensource 
 Multicast imaging, USB-Ethernet DHCP isolation, Secure Boot-compliant FOG replacement.
 Where machines are born.
 
+### Maternity Pipeline
+
+The Maternity ward builds golden images using QEMU/libvirt on Ballee-JOG (192.168.88.99).
+
+    maternity-pipeline.sh init                         # Create storage pool + dirs
+    maternity-pipeline.sh create <windows.iso> [drivers.iso]  # Create VM
+    maternity-pipeline.sh start                        # Start VM with VNC on :5901
+    maternity-pipeline.sh inject-freshness <image>     # Attach freshness ISO
+    maternity-pipeline.sh sysprep [answer.xml]         # Sysprep the VM
+    maternity-pipeline.sh capture <image_name>         # Capture qcow2
+    maternity-pipeline.sh upload <image_name>          # Push to FOG
+
+### Freshness Assessment
+
+Every golden image is scored before sysprep using `freshness.ps1`:
+
+| Category        | Weight | What It Checks               |
+|-----------------|--------|------------------------------|
+| Windows Updates | 30%    | Pending vs upstream, critical |
+| Applications    | 20%    | Winget drift (outdated/total) |
+| Drivers         | 15%    | Age >1yr flagged              |
+| Bloat           | 15%    | Temp/WinSxS/profiles/NGEN     |
+| DISM Health     | 10%    | Component store integrity     |
+| Registry        | 10%    | Hive file sizes               |
+
+Reports stored via `freshness-tracker` and tracked over successive builds to show the decline curve.
+
+    freshness-tracker ingest freshness-report.json
+    freshness-tracker show <image_name>
+    freshness-tracker report <image_name>
+
+
 MORGUE
 End-of-life processing. Data recovery from condemned hardware.
 Secure wiping, parts salvage assessment, final documentation.

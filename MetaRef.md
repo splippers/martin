@@ -43,3 +43,23 @@ For the consolidated documentation map, see **[Repository documentation](README.
 4. **NTFS/windows modules** are placeholders only; analysing Windows disks still needs tooling (Captive NTFS libs, SAFE policies) layered into future modules.
 
 Update this catalogue whenever the scaffold gains new automation or validation coverage.
+
+---
+
+## Maternity Ward — Freshness System Corrections
+
+| Item | Note |
+|------|------|
+| `freshness.ps1` `Score()` division by zero guard | Added `[Math]::Max(1, $Ideal)` to avoid division by zero when Ideal=0 |
+| `freshness.ps1` `??` null-coalescing | Used in PowerShell 7+ context; falls back to `if/else` on PS5 |
+| `freshness-tracker` DB path | Defaults to `/var/lib/maternity/freshness.db`. Created on first `init`. |
+| `maternity-pipeline.sh` VM creation | Uses `virt-install` with QEMU/KVM. Requires `$WIN_ISO` and optional `$DRV_ISO`. |
+| QEMU guest tools | Windows virtio drivers should be injected via drivers ISO during initial OS install. |
+| FOG upload | `maternity-pipeline.sh upload` currently SCP-based. FOG API integration pending. |
+
+## Behavioural notes
+
+- VM disk uses `virtio` bus for performance. Windows requires virtio drivers during install.
+- VNC port is allocated by libvirt; actual port may differ from configured `$VNC_PORT` if port is in use.
+- `freshness-tracker` is designed to be called post-image-capture as part of CI, or manually.
+- Freshness ISO is attached as `sdb` (secondary CDROM) so it doesn't interfere with Windows install media on `sda`.

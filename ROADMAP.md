@@ -204,3 +204,65 @@ Complete **Phase 1.1 → 1.5** on 1x 2020 Latitude. No new features until the lo
 
 ---
 **Theme System Status:** Design approved. Clinical default ships in Phase 2.0. Christopher skin ships in Phase 2.7. Shatner skin disabled by default, requires manual flag.
+---
+
+## Maternity Ward — Golden Image Freshness System
+
+**Objective:** Build and maintain pristine golden images. Measure freshness as drift from upstream. Track decline over successive builds. Deliver sysprepped images to FOG (JOG).
+
+### Hardware
+| Component | Role |
+|-----------|------|
+| **Ballee-JOG** (192.168.88.99) | Maternity host: QEMU/KVM, libvirt, VNC, freshness tracker |
+| **FOG/JOG** (192.168.88.22) | Image deployment via PXE/multicast |
+
+### Maternity Pipeline: `maternity/maternity-pipeline.sh`
+```
+init → create → start → [config via VNC] → inject-freshness → sysprep → capture → upload
+```
+
+| Command | Description |
+|---------|-------------|
+| `init` | Create libvirt storage pool + directories |
+| `create <iso> [drivers]` | Create golden image VM with QEMU/libvirt |
+| `start` | Start VM (VNC on port 5901) |
+| `inject-freshness <name>` | Attach ISO with freshness.ps1 to VM |
+| `sysprep [answer.xml]` | Attach sysprep answer file or guide manual |
+| `capture <name>` | Compress and snapshot qcow2 after sysprep shutdown |
+| `upload <name>` | SCP captured image to FOG server |
+
+### Freshness Assessment: `maternity/freshness.ps1`
+Runs inside the golden image VM pre-sysprep. Assesses 6 weighted categories:
+
+| Category | Weight | What It Checks |
+|----------|--------|----------------|
+| Windows Updates | 30% | MS Update COM scan — pending count, critical severity |
+| Applications | 20% | winget upgrade scan — outdated vs total |
+| Drivers | 15% | driverquery /v — age >1yr flagged |
+| Bloat | 15% | Temp/WinSxS/profiles/NGEN/DriverStore sizes, startup items |
+| DISM Health | 10% | `dism /checkhealth` — component store corruption |
+| Registry | 10% | Hive file sizes (config + ntuser.dat) |
+
+Output: `C:\BitzNBobz\freshness\<Image>_<Timestamp>\freshness-report.json`
+
+### Freshness Tracker: `maternity/freshness-tracker`
+Server-side Python tool that stores reports in SQLite and generates decline reports.
+
+| Command | Description |
+|---------|-------------|
+| `ingest <report.json>` | Store a new freshness report |
+| `list` | List all stored reports |
+| `show <image>` | Show freshness history for an image |
+| `report <image>` | Generate markdown decline report with decay projection |
+| `cleanup <days>` | Purge reports older than N days |
+
+### Freshness Decline Report
+Tracks per-build scores, calculates decay rate, and recommends rebuild when decline exceeds thresholds.
+
+### Status: BUILD COMPLETE
+- [x] `freshness.ps1` — comprehensive 6-category assessment
+- [x] `freshness-tracker` — SQLite storage + decline reports
+- [x] `maternity-pipeline.sh` — QEMU/libvirt golden image pipeline
+- [x] libvirt storage pool `maternity` initialized
+- [ ] FOG upload integration (requires FOG server config)
+- [ ] Web UI for freshness dashboard

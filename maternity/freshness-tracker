@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""
+Maternity Freshness Tracker — Stores freshness reports and tracks decline over time.
+Usage:
+  freshness-tracker ingest <report.json>    — Store a new report
+  freshness-tracker list                     — List all stored reports
+  freshness-tracker show <image_name>        — Show freshness history for an image
+  freshness-tracker report <image_name>      — Generate decline report (markdown)
+  freshness-tracker cleanup <days>           — Purge reports older than N days
+"""
+
+import json
+import sqlite3
+import sys
+import os
+from datetime import datetime, timedelta
+
+DB_PATH = "/var/lib/maternity/freshness.db"
+
+def get_db():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS freshness_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image_name TEXT NOT NULL,
+            hostname TEXT,
+            timestamp TEXT NOT NULL,
+            report_version TEXT,
+            overall_score INTEGER,
+            wu_score INTEGER,
+            wu_remaining INTEGER,
+            wu_critical INTEGER,
+            app_score INTEGER,
+            app_outdated INTEGER,
+            app_total INTEGER,
+            driver_score INTEGER,
+            driver_outdated INTEGER,
+            driver_total INTEGER,
+            bloat_score INTEGER,
+            bloat_waste_gb REAL,
+            startup_count INTEGER,
+            dism_score INTEGER,
+            dism_healthy INTEGER,
+            reg_score INTEGER,
+            reg_size_bytes INTEGER,
+            report_json TEXT NOT NULL,
+            ingested_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_image_name ON freshness_reports(image_name);
+        CREATE INDEX IF NOT EXISTS idx_timestamp ON freshness_reports(timestamp);
+    """)
+    conn.commit()
+    conn.close()
+
+def ingest(report_path):
+    with open(report_path) as f:
+        data = json.load(f)
+
+    f = data.get("freshness", {})
+    b = data.get("baseline", {})
+    cats = f.get("categories", {})
+
+    conn = get_db()
+    conn.execute("""
+        INSERT INTO freshness_reports (
+            image_name, hostname, timestamp, report_version,
+            overall_score,
+            wu_score, wu_remaining, wu_critical,
+            app_score, app_outdated, app_total,
+            driver_score, driver_outdated, driver_total,
+            bloat_score, bloat_waste_gb, startup_count,
+            dism_score, dism_healthy,
+            reg_score, reg_size_bytes,
+            report_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        b.get("image_name", "unknown"),
+        b.get("hostname", ""),
+        b.get("timestamp", datetime.now().isoformat()),
+        data.get("report_version", "1.0"),
+        f.get("overall"),
+        cats.get("windows_updates", {}).get("score"),
+        cats.get("windows_updates", {}).get("remaining"),
+        cats.get("windows_updates", {}).get("critical"),
+        cats.get("applications", {}).get("score"),
+        cats.get("applications", {}).get("outdated"),
+        cats.get("applications", {}).get("total"),
+        cats.get("drivers", {}).get("score"),
+        cats.get("drivers", {}).get("outdated"),
+        cats.get("drivers", {}).get("total"),
+        cats.get("bloat", {}).get("score"),
+        cats.get("bloat", {}).get("waste_gb"),
+        cats.get("bloat", {}).get("startup_count"),
+        cats.get("dism_health", {}).get("score"),
+        1 if cats.get("dism_health", {}).get("healthy") else 0,
+        cats.get("registry", {}).get("score"),
+        cats.get("registry", {}).get("size_bytes"),
+        json.dumps(data)
+    ))
+    conn.commit()
+
+    cursor = conn.execute("SELECT last_insert_rowid()")
+    row_id = cursor.fetchone()[0]
+    conn.close()
+    print(f"Ingested report #{row_id} for image '{b.get('image_name')}' (score: {f.get('overall')}/100)")
+
+def list_reports():
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT id, image_name, timestamp, overall_score, ingested_at
+        FROM freshness_reports ORDER BY ingested_at DESC
+    """).fetchall()
+    conn.close()
+
+    if not rows:
+        print("No freshness reports stored.")
+        return
+
+    print(f"{'ID':<5} {'Image Name':<30} {'Score':<7} {'Timestamp':<20} {'Ingested':<20}")
+    print("-" * 85)
+    for r in rows:
+        score = f"{r['overall_score']}/100" if r['overall_score'] is not None else "N/A"
+        print(f"{r['id']:<5} {r['image_name']:<30} {score:<7} {r['timestamp']:<20} {r['ingested_at']:<20}")
+
+def show(image_name):
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT id, timestamp, overall_score, wu_score, app_score, driver_score,
+               bloat_score, dism_score, reg_score, bloat_waste_gb, startup_count
+        FROM freshness_reports
+        WHERE image_name = ?
+        ORDER BY timestamp ASC
+    """, (image_name,)).fetchall()
+    conn.close()
+
+    if not rows:
+        print(f"No reports found for image '{image_name}'")
+        return
+
+    print(f"\nFreshness history for: {image_name}")
+    print(f"{'#':<4} {'Date':<20} {'Overall':<8} {'WU':<6} {'Apps':<6} {'Drv':<6} {'Bloat':<6} {'DISM':<6} {'Reg':<6} {'WasteGB':<8} {'Startup':<7}")
+    print("-" * 85)
+    first_score = None
+    for r in rows:
+        score = r['overall_score']
+        if first_score is None and score is not None:
+            first_score = score
+        marker = ""
+        if score is not None and first_score is not None:
+            diff = score - first_score
+            if diff < 0:
+                marker = f" ↓{abs(diff)}"
+        print(f"{r['id']:<4} {r['timestamp']:<20} {str(score or 'N/A'):<8} {str(r['wu_score'] or '-'):<6} {str(r['app_score'] or '-'):<6} {str(r['driver_score'] or '-'):<6} {str(r['bloat_score'] or '-'):<6} {str(r['dism_score'] or '-'):<6} {str(r['reg_score'] or '-'):<6} {str(r['bloat_waste_gb'] or '-'):<8} {str(r['startup_count'] or '-'):<7}")
+
+def report(image_name):
+    """Generate a markdown decline report."""
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT id, timestamp, overall_score, wu_score, wu_remaining, wu_critical,
+               app_score, app_outdated, app_total,
+               driver_score, driver_outdated, driver_total,
+               bloat_score, bloat_waste_gb, startup_count,
+               dism_score, reg_score, reg_size_bytes
+        FROM freshness_reports
+        WHERE image_name = ?
+        ORDER BY timestamp ASC
+    """, (image_name,)).fetchall()
+    conn.close()
+
+    if not rows:
+        print(f"No reports found for image '{image_name}'")
+        return
+
+    md = f"""# Freshness Decline Report: {image_name}
+
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Overview
+
+"""
+    first = rows[0]
+    last = rows[-1]
+    f_score = first['overall_score']
+    l_score = last['overall_score']
+    if f_score is not None and l_score is not None:
+        delta = l_score - f_score
+        trend = "📈 Improving" if delta > 0 else "📉 Declining" if delta < 0 else "➡️ Stable"
+        md += f"| Metric | First Build | Latest Build | Change |\n"
+        md += f"|--------|-------------|--------------|--------|\n"
+        md += f"| **Date** | {first['timestamp']} | {last['timestamp']} | — |\n"
+        md += f"| **Overall Freshness** | {f_score}/100 | {l_score}/100 | {delta:+d} ({trend}) |\n"
+        md += f"| **Reports Filed** | — | {len(rows)} total | — |\n"
+
+    md += f"""
+## Per-Category Breakdown
+
+| Build Date | Overall | WU | Apps | Drivers | Bloat | DISM | Registry | Waste (GB) | Startups |
+|------------|---------|----|------|---------|-------|------|----------|------------|----------|
+"""
+    for r in rows:
+        md += f"| {r['timestamp']} | {r['overall_score'] or '-'} | {r['wu_score'] or '-'} | {r['app_score'] or '-'} | {r['driver_score'] or '-'} | {r['bloat_score'] or '-'} | {r['dism_score'] or '-'} | {r['reg_score'] or '-'} | {r['bloat_waste_gb'] or '-'} | {r['startup_count'] or '-'} |\n"
+
+    md += """
+## Decline Velocity
+
+"""
+    if len(rows) >= 2:
+        for i in range(1, len(rows)):
+            prev = rows[i-1]
+            curr = rows[i]
+            if prev['overall_score'] is not None and curr['overall_score'] is not None:
+                d = curr['overall_score'] - prev['overall_score']
+                days = 1  # approx
+                arrow = "↓" if d < 0 else "↑" if d > 0 else "→"
+                md += f"- Build #{curr['id']}: {arrow} {abs(d)} pts ({curr['timestamp']})\n"
+            if prev['bloat_waste_gb'] is not None and curr['bloat_waste_gb'] is not None:
+                waste_d = curr['bloat_waste_gb'] - prev['bloat_waste_gb']
+                if waste_d > 0.1:
+                    md += f"  - Bloat increased by {waste_d:.1f} GB\n"
+
+    if l_score is not None and f_score is not None and f_score > 0:
+        decay_rate = (f_score - l_score) / f_score * 100
+        md += f"""
+## Projection
+
+Current decay rate: **{decay_rate:.1f}%** over {len(rows)} build(s).
+"""
+        if decay_rate > 10:
+            md += "⚠️  Image is decaying rapidly. Consider rebuilding from scratch.\n"
+        elif decay_rate > 5:
+            md += "⚠️  Gradual decline detected. Schedule a fresh golden image build.\n"
+        else:
+            md += "✅ Image freshness is stable. Continue monitoring.\n"
+
+    report_file = f"/tmp/freshness-report-{image_name}.md"
+    with open(report_file, "w") as f:
+        f.write(md)
+    print(md)
+    print(f"\nReport saved to: {report_file}")
+
+def cleanup(days):
+    cutoff = (datetime.now() - timedelta(days=int(days))).isoformat()
+    conn = get_db()
+    cursor = conn.execute("DELETE FROM freshness_reports WHERE timestamp < ?", (cutoff,))
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    print(f"Deleted {deleted} report(s) older than {days} days.")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+
+    init_db()
+    command = sys.argv[1]
+
+    if command == "ingest":
+        if len(sys.argv) < 3:
+            print("Usage: freshness-tracker ingest <report.json>")
+            sys.exit(1)
+        ingest(sys.argv[2])
+    elif command == "list":
+        list_reports()
+    elif command == "show":
+        if len(sys.argv) < 3:
+            print("Usage: freshness-tracker show <image_name>")
+            sys.exit(1)
+        show(sys.argv[2])
+    elif command == "report":
+        if len(sys.argv) < 3:
+            print("Usage: freshness-tracker report <image_name>")
+            sys.exit(1)
+        report(sys.argv[2])
+    elif command == "cleanup":
+        if len(sys.argv) < 3:
+            print("Usage: freshness-tracker cleanup <days>")
+            sys.exit(1)
+        cleanup(sys.argv[2])
+    else:
+        print(f"Unknown command: {command}")
+        sys.exit(1)
