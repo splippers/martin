@@ -146,7 +146,7 @@ do_create() {
         --os-variant "$OS_VARIANT" \
         --graphics vnc,listen=0.0.0.0,port="$VNC_PORT" \
         --video qxl \
-        --network network=default,model=virtio \
+        --network network=bridge,source=br-fog,model=virtio \
         --channel spicevmc \
         --noautoconsole \
         "${INSTALL_OPTS[@]}"
