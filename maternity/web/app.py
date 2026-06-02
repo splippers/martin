@@ -297,4 +297,4 @@ def api_run_action():
     return jsonify({"ok": r["ok"], "out": r["out"], "err": r["err"]})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=False)
