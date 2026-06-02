@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M.A.R.T.I.N. — Maternity Ward Console</title>
+<style>
+:root {
+  --bg: #0a0e14; --surface: #131820; --border: #1e2a3a;
+  --text: #c5d1e0; --text-dim: #6c7a8a; --accent: #4da6ff;
+  --green: #4caf50; --red: #f44336; --yellow: #ff9800;
+  --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; min-height: 100vh; }
+.header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 8px 16px; display: flex; align-items: center; gap: 16px;
+  position: sticky; top: 0; z-index: 50;
+}
+.header h1 { font-size: 16px; color: var(--accent); font-weight: 600; }
+.header .subtitle { color: var(--text-dim); font-size: 11px; }
+.header .host { margin-left: auto; color: var(--text-dim); font-size: 11px; }
+.tabs {
+  display: flex; gap: 0; background: var(--surface);
+  border-bottom: 1px solid var(--border); padding: 0 8px;
+  overflow-x: auto; position: sticky; top: 44px; z-index: 49;
+}
+.tab {
+  padding: 8px 16px; cursor: pointer; color: var(--text-dim);
+  border-bottom: 2px solid transparent; font-size: 12px;
+  white-space: nowrap; user-select: none;
+}
+.tab:hover { color: var(--text); background: rgba(77,166,255,0.08); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.panel { display: none; padding: 16px; }
+.panel.active { display: block; }
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px; margin-bottom: 12px;
+}
+.card h3 { font-size: 12px; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 10px; }
+.stat .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+.stat .value { font-size: 18px; font-weight: 600; margin-top: 2px; }
+.stat .value.green { color: var(--green); } .stat .value.red { color: var(--red); } .stat .value.yellow { color: var(--yellow); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--text-dim); font-weight: 500; text-transform: uppercase; font-size: 10px; }
+tr:hover { background: rgba(77,166,255,0.04); }
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surface); color: var(--text); cursor: pointer;
+  font-family: var(--font); font-size: 11px; white-space: nowrap;
+}
+.btn:hover { background: var(--border); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { opacity: 0.85; }
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn-sm { padding: 3px 8px; font-size: 10px; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+input, select, textarea {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 10px; color: var(--text); font-family: var(--font); font-size: 12px;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+.form-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+pre.log {
+  background: #000; border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px; font-size: 11px; max-height: 400px; overflow: auto;
+  white-space: pre-wrap; word-break: break-all;
+}
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.status-dot.running { background: var(--green); }
+.status-dot.shut { background: var(--text-dim); }
+.vnc-frame { width: 100%; height: 600px; border: 1px solid var(--border); border-radius: 4px; }
+.toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 100;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 16px; font-size: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4); max-width: 400px;
+  display: none; animation: slideIn 0.3s ease;
+}
+.toast.show { display: block; }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.success { border-left: 3px solid var(--green); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 90; display: none;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; max-width: 500px; width: 90%; max-height: 80vh; overflow: auto; }
+.modal h3 { margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏥 M.A.R.T.I.N.</h1>
+  <span class="subtitle">Maternity Ward Console</span>
+  <span class="host" id="hostname">connecting...</span>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="dashboard">Dashboard</div>
+  <div class="tab" data-tab="vms">VMs</div>
+  <div class="tab" data-tab="freshness">Freshness</div>
+  <div class="tab" data-tab="drivers">Drivers</div>
+  <div class="tab" data-tab="network">Network</div>
+  <div class="tab" data-tab="logs">Logs</div>
+</div>
+
+<!-- Dashboard -->
+<div class="panel active" id="panel-dashboard">
+  <div class="stat-grid" id="sys-stats"></div>
+  <div class="card" style="margin-top:12px">
+    <h3>Network Bridges</h3>
+    <div id="bridge-list"></div>
+  </div>
+  <div class="card">
+    <h3>QEMU VMs</h3>
+    <div id="vm-summary"></div>
+  </div>
+</div>
+
+<!-- VMs -->
+<div class="panel" id="panel-vms">
+  <div class="actions">
+    <button class="btn btn-primary" onclick="showCreateVM()">+ New VM</button>
+    <button class="btn" onclick="refreshVMs()">⟳ Refresh</button>
+  </div>
+  <table id="vm-table">
+    <thead><tr><th>Name</th><th>State</th><th>VNC</th><th>Autostart</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="card" style="margin-top:12px" id="vnc-container" style="display:none">
+    <h3>VNC Console: <span id="vnc-title"></span></h3>
+    <iframe id="vnc-frame" class="vnc-frame" src=""></iframe>
+  </div>
+</div>
+
+<!-- Freshness -->
+<div class="panel" id="panel-freshness">
+  <div class="actions">
+    <input type="text" id="freshness-image" placeholder="Image name (e.g. Latitude_5420_2026-Q2)" style="flex:1">
+    <button class="btn" onclick="showFreshness()">Show</button>
+    <button class="btn" onclick="freshnessReport()">Report</button>
+  </div>
+  <div class="card">
+    <h3>Stored Reports</h3>
+    <pre class="log" id="freshness-list" style="max-height:200px">Loading...</pre>
+  </div>
+  <div class="card">
+    <h3>Detail</h3>
+    <pre class="log" id="freshness-detail" style="max-height:400px"></pre>
+  </div>
+</div>
+
+<!-- Drivers -->
+<div class="panel" id="panel-drivers">
+  <div class="actions">
+    <button class="btn btn-primary" onclick="updateDrivers()">⟳ Update Cache</button>
+    <button class="btn" onclick="refreshDrivers()">Refresh</button>
+  </div>
+  <div class="card">
+    <h3>Driver Cache Status</h3>
+    <pre class="log" id="driver-status" style="max-height:300px">Loading...</pre>
+  </div>
+  <div class="card">
+    <h3>Models</h3>
+    <pre class="log" id="driver-list" style="max-height:300px"></pre>
+  </div>
+</div>
+
+<!-- Network -->
+<div class="panel" id="panel-network">
+  <div class="card">
+    <h3>DHCP Status</h3>
+    <div id="dhcp-status"></div>
+    <div class="actions" style="margin-top:8px">
+      <button class="btn" onclick="restartDHCP()">Restart DHCP</button>
+      <button class="btn" onclick="showDHCPConfig()">View Config</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Interfaces</h3>
+    <table id="iface-table"><thead><tr><th>Interface</th><th>State</th><th>Details</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- Logs -->
+<div class="panel" id="panel-logs">
+  <div class="actions">
+    <button class="btn" onclick="refreshLogs()">⟳ Refresh</button>
+  </div>
+  <div class="card">
+    <h3>System Logs</h3>
+    <pre class="log" id="log-output" style="max-height:500px">Loading...</pre>
+  </div>
+</div>
+
+<!-- Create VM Modal -->
+<div class="modal-overlay" id="create-vm-modal">
+  <div class="modal">
+    <h3>Create Golden Image VM</h3>
+    <div class="form-row"><label style="width:80px">Name</label><input type="text" id="vm-name" value="Win10-Golden" style="flex:1"></div>
+    <div class="form-row"><label style="width:80px">RAM (MB)</label><input type="number" id="vm-ram" value="4096" style="width:120px"></div>
+    <div class="form-row"><label style="width:80px">CPUs</label><input type="number" id="vm-cpus" value="2" style="width:80px"></div>
+    <div class="form-row"><label style="width:80px">Disk (GB)</label><input type="number" id="vm-disk" value="64" style="width:80px"></div>
+    <div class="form-row"><label style="width:80px">Windows ISO</label><input type="text" id="vm-iso" placeholder="/path/to/Win10.iso" style="flex:1"></div>
+    <div class="form-row"><label style="width:80px">Drivers ISO</label><input type="text" id="vm-drivers" placeholder="/path/to/drivers.iso (optional)" style="flex:1"></div>
+    <div class="form-row" id="vm-create-progress" style="display:none">
+      <pre class="log" style="flex:1;max-height:150px" id="vm-create-log"></pre>
+    </div>
+    <div class="actions" style="justify-content:flex-end">
+      <button class="btn" onclick="closeModal('create-vm-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createVM()">Create VM</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Tab switching ─────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Toast ──────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ── Modal ──────────────────────────────────────────────────────
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function showCreateVM() { showModal('create-vm-modal'); }
+
+async function api(url, opts={}) {
+  const r = await fetch(url, opts);
+  const ct = r.headers.get('content-type') || '';
+  if (ct.includes('json')) return r.json();
+  if (ct.includes('ndjson')) return r;
+  return r.text();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+async function refreshDashboard() {
+  const data = await api('/api/status');
+  document.getElementById('hostname').textContent = data.hostname;
+
+  const stats = document.getElementById('sys-stats');
+  stats.innerHTML = `
+    <div class="stat"><div class="label">Uptime</div><div class="value">${data.uptime_days}d</div></div>
+    <div class="stat"><div class="label">CPU</div><div class="value ${data.cpu_percent > 80 ? 'red' : 'green'}">${data.cpu_percent}%</div></div>
+    <div class="stat"><div class="label">Memory</div><div class="value ${data.memory.percent > 80 ? 'red' : 'green'}">${data.memory.used_gb}/${data.memory.total_gb}GB</div></div>
+    <div class="stat"><div class="label">Disk</div><div class="value ${data.disk.percent > 80 ? 'red' : 'green'}">${data.disk.used_gb}/${data.disk.total_gb}GB</div></div>
+    <div class="stat"><div class="label">DHCP</div><div class="value ${data.dhcp.active === 'active' ? 'green' : 'red'}">${data.dhcp.active}</div></div>
+  `;
+
+  const bl = document.getElementById('bridge-list');
+  let html = '<table><thead><tr><th>Bridge</th><th>IP</th><th>State</th><th>Members</th></tr></thead><tbody>';
+  for (const [name, info] of Object.entries(data.bridges)) {
+    html += `<tr><td>${name}</td><td>${info.ip || '-'}</td><td><span class="status-dot ${info.state === 'UP' ? 'running' : 'shut'}"></span>${info.state}</td><td>${info.members || 0}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  bl.innerHTML = html;
+
+  const vms = await api('/api/vms');
+  const vs = document.getElementById('vm-summary');
+  vs.innerHTML = vms.length ? `<table><thead><tr><th>Name</th><th>State</th><th>VNC</th></tr></thead><tbody>${vms.map(v => `<tr><td>${v.name}</td><td><span class="status-dot ${v.state.includes('running') ? 'running' : 'shut'}"></span>${v.state}</td><td>${v.vnc || '-'}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--text-dim)">No VMs yet. Create one in the VMs tab.</p>';
+}
+
+// ── VMs ────────────────────────────────────────────────────────
+async function refreshVMs() {
+  const vms = await api('/api/vms');
+  const tbody = document.querySelector('#vm-table tbody');
+  tbody.innerHTML = vms.map(v => {
+    const running = v.state.includes('running');
+    return `<tr>
+      <td><strong>${v.name}</strong></td>
+      <td><span class="status-dot ${running ? 'running' : 'shut'}"></span>${v.state}</td>
+      <td>${v.vnc || '-'}</td>
+      <td>${v.autostart}</td>
+      <td class="actions" style="margin:0">
+        ${!running ? `<button class="btn btn-sm btn-primary" onclick="vmAction('${v.name}','start')">Start</button>` : `<button class="btn btn-sm btn-danger" onclick="vmAction('${v.name}','shutdown')">Stop</button>`}
+        ${running ? `<button class="btn btn-sm" onclick="vmAction('${v.name}','destroy')">Kill</button>` : ''}
+        <button class="btn btn-sm" onclick="openVNC('${v.name}')">VNC</button>
+        ${v.autostart === 'yes' ? `<button class="btn btn-sm" onclick="vmAction('${v.name}','autostart-disable')">No Autostart</button>` : `<button class="btn btn-sm" onclick="vmAction('${v.name}','autostart')">Autostart</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function vmAction(name, action) {
+  const r = await api(`/api/vm/${name}/${action}`, { method: 'POST' });
+  if (r.ok) { toast(`VM ${name}: ${action}`); refreshVMs(); refreshDashboard(); }
+  else toast(`Failed: ${r.err}`, 'error');
+}
+
+async function openVNC(name) {
+  const r = await api(`/api/vnc/${name}`);
+  if (!r.vnc) { toast('No VNC display available', 'error'); return; }
+  // Try to proxy via websockify — use direct VNC link for now
+  // Show instructions since we can't easily embed noVNC without websockify
+  document.getElementById('vnc-container').style.display = 'block';
+  document.getElementById('vnc-title').textContent = `${name}: ${r.vnc}`;
+  document.getElementById('vnc-container').innerHTML = `
+    <h3>VNC Console: ${name}</h3>
+    <p style="color:var(--text-dim);margin:8px 0">
+      Connect with any VNC client:<br>
+      <code style="background:var(--bg);padding:4px 8px;border-radius:3px">vncviewer 192.168.88.99${r.vnc}</code>
+    </p>
+    <p style="color:var(--text-dim);font-size:11px">Or install noVNC for in-browser access.</p>
+  `;
+}
+
+async function createVM() {
+  const data = {
+    name: document.getElementById('vm-name').value,
+    ram: parseInt(document.getElementById('vm-ram').value),
+    cpus: parseInt(document.getElementById('vm-cpus').value),
+    disk_gb: parseInt(document.getElementById('vm-disk').value),
+    iso: document.getElementById('vm-iso').value,
+    drivers_iso: document.getElementById('vm-drivers').value,
+  };
+  if (!data.iso) { toast('Windows ISO path required', 'error'); return; }
+
+  const log = document.getElementById('vm-create-log');
+  const progress = document.getElementById('vm-create-progress');
+  progress.style.display = 'block';
+  log.textContent = 'Creating VM...';
+
+  try {
+    const resp = await api('/api/vm/create', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data),
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value).trim().split('\n');
+      for (const line of lines) {
+        try {
+          const msg = JSON.parse(line);
+          log.textContent += msg.step + '\n';
+          if (msg.status === 'ok') { toast('VM created'); closeModal('create-vm-modal'); refreshVMs(); }
+          if (msg.status === 'error') toast('VM creation failed', 'error');
+        } catch(e) { log.textContent += line + '\n'; }
+      }
+    }
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ── Freshness ─────────────────────────────────────────────────
+async function refreshFreshness() {
+  const r = await api('/api/freshness');
+  document.getElementById('freshness-list').textContent = r.reports || '(empty)';
+}
+async function showFreshness() {
+  const name = document.getElementById('freshness-image').value;
+  if (!name) { toast('Enter an image name', 'error'); return; }
+  const r = await api(`/api/freshness/${name}`);
+  document.getElementById('freshness-detail').textContent = r.detail || '(no data)';
+}
+async function freshnessReport() {
+  const name = document.getElementById('freshness-image').value;
+  if (!name) { toast('Enter an image name', 'error'); return; }
+  const r = await api(`/api/freshness/report/${name}`);
+  document.getElementById('freshness-detail').textContent = r.report || '(no data)';
+}
+
+// ── Drivers ───────────────────────────────────────────────────
+async function refreshDrivers() {
+  const r = await api('/api/drivers');
+  document.getElementById('driver-status').textContent = r.status || r.err || '(error)';
+  const l = await api('/api/drivers/list');
+  document.getElementById('driver-list').textContent = l.list || '(empty)';
+}
+
+async function updateDrivers() {
+  const log = document.getElementById('driver-status');
+  log.textContent = 'Updating driver cache...\n';
+  document.querySelector('[data-tab=\"drivers\"]').click();
+
+  try {
+    const resp = await api('/api/drivers/update', { method: 'POST' });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value).trim().split('\n');
+      for (const line of lines) {
+        try {
+          const msg = JSON.parse(line);
+          log.textContent += msg.step + '\n';
+          if (msg.status === 'ok') toast('Driver cache updated');
+        } catch(e) { log.textContent += line + '\n'; }
+      }
+    }
+  } catch(e) { toast('Update failed: ' + e.message, 'error'); }
+}
+
+// ── Network ───────────────────────────────────────────────────
+async function refreshNetwork() {
+  const r = await api('/api/network');
+  const dhcp = document.getElementById('dhcp-status');
+  dhcp.innerHTML = `<span class="status-dot ${r.dhcp.active === 'active' ? 'running' : 'shut'}"></span> DHCP: ${r.dhcp.active}`;
+
+  const tbody = document.querySelector('#iface-table tbody');
+  tbody.innerHTML = r.interfaces.map(i =>
+    `<tr><td>${i.name}</td><td><span class="status-dot ${i.state === 'UP' ? 'running' : 'shut'}"></span>${i.state}</td><td>${r.bridges[i.name] ? r.bridges[i.name].ip : '-'}</td></tr>`
+  ).join('');
+}
+
+async function restartDHCP() {
+  const r = await api('/api/dhcp/restart', { method: 'POST' });
+  if (r.ok) { toast('DHCP restarted'); refreshNetwork(); refreshDashboard(); }
+  else toast('Failed: ' + r.err, 'error');
+}
+
+async function showDHCPConfig() {
+  const r = await api('/api/dhcp/config');
+  if (r.ok) toast('DHCP config loaded in logs tab', 'success');
+}
+
+// ── Logs ──────────────────────────────────────────────────────
+async function refreshLogs() {
+  const r = await api('/api/logs?lines=100');
+  let out = '';
+  for (const [src, content] of Object.entries(r)) {
+    out += `=== ${src} ===\n${content}\n\n`;
+  }
+  document.getElementById('log-output').textContent = out;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+refreshDashboard();
+refreshVMs();
+refreshFreshness();
+refreshDrivers();
+refreshNetwork();
+refreshLogs();
+setInterval(refreshDashboard, 10000);
+</script>
+</body>
+</html>
